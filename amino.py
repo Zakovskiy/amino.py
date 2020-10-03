@@ -1,3 +1,4 @@
+# coding=utf-8
 import requests
 import json
 from time import timezone
@@ -12,14 +13,18 @@ class Client:
 		self.sid = result["sid"];
 		self.auid = result["auid"];
 
+	def moderation_history_user(self, community_id, userId: str = None, size: int = 25):
+		response = requests.get("https://service.narvii.com/api/v1/x"+community_id+"/s/admin/operation?pagingType=t&size="+str(size)+"&sid="+self.sid, headers={'Content-Type': 'application/json'})
+		return response.json();
+
 	def watch_ad(self):
 		response = requests.post("https://service.narvii.com/api/v1/g/s/wallet/ads/video/start?sid="+self.sid, headers={'Content-Type': 'application/json'})
 		return response.json();
 
 	def transfer_host(self, community_id, chatId: str, userIds: list):
 		data = json.dumps({
-		    "uidList": userIds,
-		    "timestamp": int(timestamp() * 1000)
+			"uidList": userIds,
+			"timestamp": int(timestamp() * 1000)
 		})
 
 		response = requests.post("https://service.narvii.com/api/v1/x"+str(community_id)+"/s/chat/thread/"+chatId+"/transfer-organizer?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data).json()
@@ -44,11 +49,11 @@ class Client:
 	def ban(self, userId: str, community_id, reason: str, banType: int = None):
 
 		response = requests.post("https://service.narvii.com/api/v1/x"+community_id+"/s/user-profile/"+userId+"/ban?sid="+self.sid, headers={'Content-Type': 'application/json'}, data={
-		    "reasonType": banType,
-		    "note": {
-		        "content": reason
-		    },
-		    "timestamp": int(timestamp() * 1000)
+			"reasonType": banType,
+			"note": {
+				"content": reason
+			},
+			"timestamp": int(timestamp() * 1000)
 		}).json();
 		return response;
 
@@ -58,10 +63,10 @@ class Client:
 
 	def unban(self, community_id, userId: str, reason: str):
 		data = json.dumps({
-		    "note": {
-		        "content": reason
-		    },
-		    "timestamp": int(timestamp() * 1000)
+			"note": {
+				"content": reason
+			},
+			"timestamp": int(timestamp() * 1000)
 		})
 
 		response = requests.post("https://service.narvii.com/api/v1/x"+community_id+"/s/user-profile/"+userId+"/unban?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
@@ -85,9 +90,9 @@ class Client:
 
 	def deleteMessage(self, thread_id: str, community_id, messageId: str, asStaff: bool = False, reason: str = None):
 		data = json.dumps({
-		    "adminOpName": 102,
-		    "adminOpNote": {"content": reason},
-		    "timestamp": int(timestamp() * 1000)
+			"adminOpName": 102,
+			"adminOpNote": {"content": reason},
+			"timestamp": int(timestamp() * 1000)
 		})
 		if not asStaff: response = requests.delete("https://service.narvii.com/api/v1/x"+str(community_id)+"/s/chat/thread/"+thread_id+"/message/"+messageId+"?sid="+self.sid, headers={'Content-Type': 'application/json'})
 		else: response = requests.post("https://service.narvii.com/api/v1/x"+str(community_id)+"/s/chat/thread/"+thread_id+"/message/"+messageId+"/admin?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
@@ -113,8 +118,33 @@ class Client:
 		result = requests.get("https://service.narvii.com/api/v1/x"+str(community_id)+"/s/chat/thread?type=exist-single&cv=1.2&q="+uid+"&sid="+self.sid).json();
 		return result;
 
-	def send(self, message, community_id, thread_id, notifcation : list = None):
-		result = requests.post("https://service.narvii.com/api/v1/x"+community_id+"/s/chat/thread/"+thread_id+"/message?sid="+self.sid,
+	def vc_permission(self, community_id: str, thread_id: str, permission: int):
+		response = requests.post(f"https://service.narvii.com/api/v1/x{community_id}/s/chat/thread/{thread_id}/vvchat-permission?sid="+self.sid,headers={'Content-Type': 'application/json'}, data=json.dumps({"vvChatJoinType": permission,"timestamp": int(timestamp() * 1000)}))
+		return response.json();
+
+	def send_embed(self, community_id: str, chatId: str, message: str = None, embedTitle: str = None, embedContent: str = None):
+		data = {
+			"type": 0,
+			"content": message,
+			"clientRefId": int(timestamp() / 10 % 1000000000),
+			"attachedObject": {
+				"objectId": None,
+				"objectType": 100,
+				"link": None,
+				"title": embedTitle,
+				"content": embedContent,
+				"mediaList": None
+			},
+			"extensions": {"mentionedArray": None},
+			"timestamp": int(timestamp() * 1000)
+		}
+		print(f"https://service.narvii.com/api/v1/x{community_id}/s/chat/thread/{chatId}/message?sid="+self.sid);
+		print(json.dumps(data));
+		response = requests.post(f"https://service.narvii.com/api/v1/x{community_id}/s/chat/thread/{chatId}/message?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+		return response.json()
+
+	def send(self, message, community_id : str, thread_id, notifcation : list = None):
+		result = requests.post(f"https://service.narvii.com/api/v1/x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
 			data=json.dumps({"content":message,"type":0,"clientRefId":43196704,"mentionedArray": [notifcation], "timestamp":(int(timestamp() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
@@ -149,6 +179,10 @@ class Client:
 			data=json.dumps({"type":0,"clientRefId":43196704,"timestamp":(int(timestamp() * 1000)),"mediaType":100,"mediaUploadValue":img.strip().decode(),"mediaUploadValueContentType" : "image/jpg","mediaUhqEnabled":False,"attachedObject":None}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
+
+	def join_community(self, community_id: str):
+		response = requests.post(f"https://service.narvii.com/api/v1/x{community_id}/s/community/join?sid="+self.sid, data=json.dumps({"timestamp": int(timestamp() * 1000)}), headers={'Content-Type': 'application/json'}).json()
+		return response
 
 	def join_chat(self, community_id, thread_id):
 		response = requests.post("https://service.narvii.com/api/v1/x"+str(community_id)+"/s/chat/thread/"+thread_id+"/member/"+self.auid+"?sid="+self.sid, headers={'Content-Type': 'application/json'}).json()
