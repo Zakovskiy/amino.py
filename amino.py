@@ -100,7 +100,7 @@ class Client:
 		result = requests.post(self.api+"x"+str(community_id)+"/s/chat/thread?sid="+self.sid,
 			data=json.dumps({'inviteeUids': [uid],"initialMessageContent":message,"type":0,"timestamp":(int(timestamp() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
-		return result;я
+		return result;
 
 	def deleteMessage(self, thread_id: str, community_id, messageId: str, asStaff: bool = False, reason: str = None):
 		data = json.dumps({
