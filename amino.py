@@ -257,11 +257,11 @@ class Client:
 		response = requests.post(f"{self.api}/x{community_id}/s/check-in?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
 		return response.json()
 
-	def send_coins_blog(self, community_id:int = 0, blogId:str = None, coins:int):
+	def send_coins_blog(self, community_id:int = 0, blogId:str = None, coins:int = None):
 		response = requests.post(f"{self.api}/x{community_id}/s/blog/{blogId}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId": str(UUID(hexlify(urandom(16)).decode('ascii')))},"timestamp": int(timestamp() * 1000)}))
 		return response.json();
 
-	def send_coins_chat(self, community_id:int = None, thread_id:str = None, coins:int):
+	def send_coins_chat(self, community_id:int = None, thread_id:str = None, coins:int = None):
 		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId": str(UUID(hexlify(urandom(16)).decode('ascii')))},"timestamp": int(timestamp() * 1000)}))
 		return response.json();
 
