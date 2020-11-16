@@ -58,7 +58,7 @@ class Client:
 		return res.json()
 
 	def getThread(self, community_id, thread_id):
-		res = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}?sid="+self.sid, headers={'Content-Type': 'application/json'});
+		res = requests.get(f"{self.api}x{community_id}/s/chat/thread/{thread_id}?sid="+self.sid, headers={'Content-Type': 'application/json'});
 		return res.json();
 
 	def sendAudio(self, path, community_id, thread_id):
@@ -260,13 +260,32 @@ class Client:
 		response = requests.post(f"{self.api}/x{community_id}/s/check-in?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
 		return response.json()
 
-	def send_coins_blog(self, community_id:int = 0, blogId:str = None, coins:int = None):
-		response = requests.post(f"{self.api}/x{community_id}/s/blog/{blogId}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId": str(UUID(hexlify(urandom(16)).decode('ascii')))},"timestamp": int(timestamp() * 1000)}))
+	def send_coins_blog(self, community_id:int = 0, blogId:str = None, coins:int = None, transactionId:str = None):
+		if(transactionId is None): transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')));
+		print(transactionId);
+		response = requests.post(f"{self.api}/x{community_id}/s/blog/{blogId}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId": transactionId},"timestamp": int(timestamp() * 1000)}))
 		return response.json();
 
-	def send_coins_chat(self, community_id:int = None, thread_id:str = None, coins:int = None):
-		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId": str(UUID(hexlify(urandom(16)).decode('ascii')))},"timestamp": int(timestamp() * 1000)}))
+	def send_coins_chat(self, community_id:int = None, thread_id:str = None, coins:int = None, transactionId:str = None):
+		if(transactionId is None): transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')));
+		print(transactionId);
+		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId":transactionId},"timestamp": int(timestamp() * 1000)}))
 		return response.json();
+
+	def edit_thread(self, community_id:int = None, thread_id:str = None, content:str = None, title:str = None, backgroundImage:str = None):
+		res = [];
+		if backgroundImage is not None:
+			data = json.dumps({"media": [100, backgroundImage, None], "timestamp": int(timestamp() * 1000)});
+			response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}/background?sid="+self.sid, data=data, headers={'Content-Type': 'application/json'});
+			res.append(response.json());
+
+		data = {"timestamp":int(timestamp() * 1000)};
+
+		if(content): data["content"] = content;
+		if(title):   data["title"]   = title;
+		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=json.dumps(data));
+		res.append(response.json());
+		return res;
 
 	# Moder:{
 
