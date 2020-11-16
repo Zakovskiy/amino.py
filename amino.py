@@ -8,6 +8,9 @@ import base64
 from typing import BinaryIO
 import random
 from string import hexdigits
+from uuid import UUID
+from binascii import hexlify
+from os import urandom
 
 class Client:
 	api = "https://service.narvii.com/api/v1/";
