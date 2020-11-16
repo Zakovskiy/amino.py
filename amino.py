@@ -6,6 +6,8 @@ from time import time as timestamp
 from websocket import create_connection
 import base64
 from typing import BinaryIO
+import random
+from string import hexdigits
 
 class Client:
 	api = "https://service.narvii.com/api/v1/";
@@ -100,7 +102,7 @@ class Client:
 		result = requests.post(self.api+"x"+str(community_id)+"/s/chat/thread?sid="+self.sid,
 			data=json.dumps({'inviteeUids': [uid],"initialMessageContent":message,"type":0,"timestamp":(int(timestamp() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
-		return result;
+		return result;я
 
 	def deleteMessage(self, thread_id: str, community_id, messageId: str, asStaff: bool = False, reason: str = None):
 		data = json.dumps({
@@ -200,6 +202,18 @@ class Client:
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
+	def send_coins(self, coins, blogId, community_id):
+		transactionId = f"{''.join(random.sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(random.sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(random.sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(random.sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(random.sample([lst for lst in hexdigits[:-6]], 12))}"
+
+		data = {
+			"coins": coins,
+			"tippingContext": {"transactionId": transactionId},
+			"timestamp": int(timestamp() * 1000)
+		}
+
+		response = requests.post(f"{self.api}/x{community_id}/s/blog/{blogId}/tipping?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+		return response.json()
+
 	def join_community(self, community_id: str):
 		response = requests.post(f"{self.api}x{community_id}/s/community/join?sid="+self.sid, data=json.dumps({"timestamp": int(timestamp() * 1000)}), headers={'Content-Type': 'application/json'}).json()
 		return response
@@ -235,4 +249,24 @@ class Client:
 
 	def get_community_info(self, community_id):
 		response = requests.get(f"{self.api}/g/s-x{community_id}/community/info?withInfluencerList=1&withTopicList=true&influencerListOrderStrategy=fansCount", headers={'Content-Type': 'application/json'})
+		return response.json();
+
+	def check(self, community_id, tz: str = -timezone // 1000):
+		data = json.dumps({"timezone": tz,"timestamp": int(timestamp() * 1000)})
+
+		response = requests.post(f"{self.api}/x{community_id}/s/check-in?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
+		return response.json()
+
+	def send_coins_blog(self, community_id:int = 0, blogId:str = None, coins:int):
+		response = requests.post(f"{self.api}/x{community_id}/s/blog/{blogId}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId": str(UUID(hexlify(urandom(16)).decode('ascii')))},"timestamp": int(timestamp() * 1000)}))
+		return response.json();
+
+	def send_coins_chat(self, community_id:int = None, thread_id:str = None, coins:int):
+		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId": str(UUID(hexlify(urandom(16)).decode('ascii')))},"timestamp": int(timestamp() * 1000)}))
+		return response.json();
+
+	# Moder:{
+
+	def moderation_history_community(self, community_id, size: int = 25):
+		response = requests.get(f"{self.api}/x{community_id}/s/admin/operation?pagingType=t&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
 		return response.json();
