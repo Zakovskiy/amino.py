@@ -11,18 +11,52 @@ from string import hexdigits
 from uuid import UUID
 from binascii import hexlify
 from os import urandom
+import device
+from locale import getdefaultlocale as locale
 
 class Client:
 	api = "https://service.narvii.com/api/v1/";
 
 	def __init__(self, email, password):
-		result = requests.post(self.api+"g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":"015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C","clientType":100,"action":"normal","timestamp":(int(timestamp() * 1000))}), headers={'Content-Type': 'application/json'}).json()
-		self.sid = result["sid"];
-		self.auid = result["auid"];
+		result = requests.post(self.api+"g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":"015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C","clientType":100,"action":"normal","timestamp":(int(timestamp() * 1000))}), headers={'Content-Type': 'application/json'})
+		try:
+			self.sid = result.json()["sid"];
+			self.auid = result.json()["auid"];
+		except:
+			print("Error: "+result.json()["api:message"])
 
 	def get_notification(self, community_id, start:int = 0, size:int = 10):
 		response = requests.get(f"{self.api}/x{community_id}/s/notification?start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'});
 		return response.json();
+
+	def register(self, nickname: str, email: str, password: str, deviceId: device.DeviceGenerator() = None):
+		data = json.dumps({"secret":"0 "+password,"deviceID": deviceId.device_id,"email": email,"clientType": 100,"nickname": nickname,"latitude": 0,"longitude": 0,"address": None,"clientCallbackURL": "narviiapp://relogin","type": 1,"identity": email,"timestamp": int(timestamp() * 1000)})
+
+		response = requests.post(f"{self.api}/g/s/auth/register", data=data, headers={
+			"NDCDEVICEID": deviceId.device_id,
+			"NDC-MSG-SIG": deviceId.device_id_sig,
+			"Accept-Language": "en-US",
+			"Content-Type": "application/json; charset=utf-8",
+			"User-Agent": deviceId.user_agent,
+			"Host": "service.narvii.com",
+			"Accept-Encoding": "gzip",
+			"Connection": "Keep-Alive"
+		})
+		return response.json()
+
+	def check_device(self, deviceId: str):
+		data = json.dumps({
+			"deviceID": deviceId,
+			"bundleID": "com.narvii.amino.master",
+			"clientType": 100,
+			"timezone": -timezone // 1000,
+			"systemPushEnabled": True,
+			"locale": locale()[0],
+			"timestamp": int(timestamp() * 1000)
+		})
+
+		response = requests.post(f"{self.api}/g/s/device", headers={'Content-Type': 'application/json'}, data=data)
+		return response.json()
 
 	def get_wallet_history(self, start:int = 0, size:int = 25):
 		response = requests.get(f"{self.api}/g/s/wallet/coin/history?start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
@@ -205,25 +239,30 @@ class Client:
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
-	def send_coins(self, coins, blogId, community_id):
-		transactionId = f"{''.join(random.sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(random.sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(random.sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(random.sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(random.sample([lst for lst in hexdigits[:-6]], 12))}"
-
-		data = {
-			"coins": coins,
-			"tippingContext": {"transactionId": transactionId},
-			"timestamp": int(timestamp() * 1000)
-		}
-
-		response = requests.post(f"{self.api}/x{community_id}/s/blog/{blogId}/tipping?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=json.dumps(data))
-		return response.json()
-
 	def join_community(self, community_id: str):
 		response = requests.post(f"{self.api}x{community_id}/s/community/join?sid="+self.sid, data=json.dumps({"timestamp": int(timestamp() * 1000)}), headers={'Content-Type': 'application/json'}).json()
 		return response
 
+	def invite_to_chat(self, community_id, thread_id: str, userId: [str, list]):
+		if isinstance(userId, str): userIds = [userId]
+		elif isinstance(userId, list): userIds = userId
+		else: raise exceptions.WrongType(type(userId))
+
+		data = json.dumps({
+			"uids": userIds,
+			"timestamp": int(timestamp() * 1000)
+		})
+
+		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/member/invite?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
+		return response.json()
+
 	def join_chat(self, community_id, thread_id):
 		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}?sid="+self.sid, headers={'Content-Type': 'application/json'}).json()
 		return response;
+
+	def get_online_users(self, community_id, start: int = 0, size: int = 25):
+		response = requests.get(f"{self.api}/x{community_id}/s/live-layer?topic=ndtopic:x{community_id}:online-members&start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
+		return response.json()
 
 	def get_users_community(self, community_id, start:int = 0, size:int = 25):
 		response = requests.get(f"{self.api}x{community_id}/s/user-profile?type=recent&start={start}&size={size}&sid="+self.sid).json();
@@ -262,15 +301,23 @@ class Client:
 
 	def send_coins_blog(self, community_id:int = 0, blogId:str = None, coins:int = None, transactionId:str = None):
 		if(transactionId is None): transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')));
-		print(transactionId);
 		response = requests.post(f"{self.api}/x{community_id}/s/blog/{blogId}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId": transactionId},"timestamp": int(timestamp() * 1000)}))
 		return response.json();
 
 	def send_coins_chat(self, community_id:int = None, thread_id:str = None, coins:int = None, transactionId:str = None):
 		if(transactionId is None): transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')));
-		print(transactionId);
 		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId":transactionId},"timestamp": int(timestamp() * 1000)}))
-		return response.json();
+		print(response.json());
+		return transactionId;
+
+	def lottery(self, community_id, tz: str = -timezone // 1000):
+		data = json.dumps({
+			"timezone": tz,
+			"timestamp": int(timestamp() * 1000)
+		})
+
+		response = requests.post(f"{self.api}/x{community_id}/s/check-in/lottery?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
+		return response.json()
 
 	def edit_thread(self, community_id:int = None, thread_id:str = None, content:str = None, title:str = None, backgroundImage:str = None):
 		res = [];
