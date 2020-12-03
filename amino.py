@@ -11,7 +11,6 @@ from string import hexdigits
 from uuid import UUID
 from binascii import hexlify
 from os import urandom
-import device
 from locale import getdefaultlocale as locale
 
 class Client:
@@ -29,21 +28,6 @@ class Client:
 		response = requests.get(f"{self.api}/x{community_id}/s/notification?start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'});
 		return response.json();
 
-	def register(self, nickname: str, email: str, password: str, deviceId: device.DeviceGenerator() = None):
-		data = json.dumps({"secret":"0 "+password,"deviceID": deviceId.device_id,"email": email,"clientType": 100,"nickname": nickname,"latitude": 0,"longitude": 0,"address": None,"clientCallbackURL": "narviiapp://relogin","type": 1,"identity": email,"timestamp": int(timestamp() * 1000)})
-
-		response = requests.post(f"{self.api}/g/s/auth/register", data=data, headers={
-			"NDCDEVICEID": deviceId.device_id,
-			"NDC-MSG-SIG": deviceId.device_id_sig,
-			"Accept-Language": "en-US",
-			"Content-Type": "application/json; charset=utf-8",
-			"User-Agent": deviceId.user_agent,
-			"Host": "service.narvii.com",
-			"Accept-Encoding": "gzip",
-			"Connection": "Keep-Alive"
-		})
-		return response.json()
-
 	def check_device(self, deviceId: str):
 		data = json.dumps({
 			"deviceID": deviceId,
@@ -57,6 +41,10 @@ class Client:
 
 		response = requests.post(f"{self.api}/g/s/device", headers={'Content-Type': 'application/json'}, data=data)
 		return response.json()
+
+	def get_wallet_info(self):
+		response = requests.get(f"{self.api}/g/s/wallet?sid="+self.sid, headers={'Content-Type': 'application/json'}).json();
+		return response;
 
 	def get_wallet_history(self, start:int = 0, size:int = 25):
 		response = requests.get(f"{self.api}/g/s/wallet/coin/history?start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
@@ -194,9 +182,9 @@ class Client:
 		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chatId}/message?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=json.dumps(data))
 		return response.json()
 
-	def send(self, message, community_id : str, thread_id, notifcation : list = None):
+	def send(self, message, community_id : str, thread_id, notifcation : list = None, clientRefId:int=43196704):
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
-			data=json.dumps({"content":message,"type":0,"clientRefId":43196704,"mentionedArray": [notifcation], "timestamp":(int(timestamp() * 1000))}),
+			data=json.dumps({"content":message,"type":0,"clientRefId":clientRefId,"mentionedArray": [notifcation], "timestamp":(int(timestamp() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
@@ -284,6 +272,10 @@ class Client:
 			data=json.dumps({"content":content,'mediaList': [],"eventSource":"PostDetailView","timestamp":(int(timestamp() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
+
+	def get_from_code(self, code: str):
+		response = requests.get(f"{self.api}/g/s/link-resolution?q={code}", headers={'Content-Type': 'application/json'})
+		return response.json()
 
 	def get_user_blogs(self, community_id, author, start:int = 0,size:int = 25):
 		response = requests.get(f"{self.api}/x{community_id}/s/blog?type=user&q={author}&start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
