@@ -26,6 +26,7 @@ class Client:
 			print("Error: "+result.json()["api:message"]);
 
 	def reload_socket(self):
+		self.socket_time = timestamp();
 		self.ws = create_connection("wss://ws1.narvii.com?signbody=015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C%7C"+str((int(timestamp() * 1000)))+"&sid="+self.sid);
 
 	def accept_host(self, community_id:int = None, chatId: str = None):
@@ -124,6 +125,8 @@ class Client:
 		return response.json();
 
 	def listen(self):
+		if((timestamp() - self.socket_time) > 240):
+			self.reload_socket();
 		return json.loads(self.ws.recv());
 
 	def setNickname(self, nickname, community_id, uid):
