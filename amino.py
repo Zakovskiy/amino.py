@@ -126,6 +126,7 @@ class Client:
 
 	def listen(self):
 		if((timestamp() - self.socket_time) > 240):
+			self.ws.close();
 			self.reload_socket();
 		return json.loads(self.ws.recv());
 
