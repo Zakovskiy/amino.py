@@ -21,8 +21,18 @@ class Client:
 		try:
 			self.sid = result.json()["sid"];
 			self.auid = result.json()["auid"];
+			self.reload_socket();
 		except:
-			print("Error: "+result.json()["api:message"])
+			print("Error: "+result.json()["api:message"]);
+
+	def reload_socket(self):
+		self.ws = create_connection("wss://ws1.narvii.com?signbody=015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C%7C"+str((int(timestamp() * 1000)))+"&sid="+self.sid);
+
+	def accept_host(self, community_id:int = None, chatId: str = None):
+		data = json.dumps({"timestamp": int(timestamp() * 1000)})
+
+		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{chatId}/accept-organizer?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
+		return response.json()
 
 	def get_notification(self, community_id, start:int = 0, size:int = 10):
 		response = requests.get(f"{self.api}/x{community_id}/s/notification?start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'});
@@ -89,13 +99,13 @@ class Client:
 
 	def ban(self, userId: str, community_id, reason: str, banType: int = None):
 
-		response = requests.post(f"{self.api}x{community_id}/s/user-profile/{userId}/ban?sid="+self.sid, headers={'Content-Type': 'application/json'}, data={
+		response = requests.post(f"{self.api}x{community_id}/s/user-profile/{userId}/ban?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=json.dumps({
 			"reasonType": banType,
 			"note": {
 				"content": reason
 			},
 			"timestamp": int(timestamp() * 1000)
-		}).json();
+		})).json();
 		return response;
 
 	def get_banned_users(self, community_id, start: int = 0, size: int = 25):
@@ -114,8 +124,7 @@ class Client:
 		return response.json();
 
 	def listen(self):
-		ws = create_connection("wss://ws1.narvii.com?signbody=015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C%7C"+str((int(timestamp() * 1000)))+"&sid="+self.sid);
-		return json.loads(ws.recv());
+		return json.loads(self.ws.recv());
 
 	def setNickname(self, nickname, community_id, uid):
 		result = requests.post(self.api+"x"+str(community_id)+"/s/user-profile/"+uid+"?sid="+self.sid,
@@ -139,8 +148,8 @@ class Client:
 		else: response = requests.post(self.api+"x"+str(community_id)+"/s/chat/thread/"+thread_id+"/message/"+messageId+"/admin?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
 		return response.json()
 
-	def kick(self, author: str, thread_id: str, community_id, allowRejoin):
-		response = requests.delete(self.api+"x"+community_id+"/s/chat/thread/"+thread_id+"/member/"+author+"?allowRejoin="+str(allowRejoin)+"&sid="+self.sid, headers={'Content-Type': 'application/json'})
+	def kick(self, author: str, thread_id: str, community_id, allowRejoin:int = 0):
+		response = requests.delete(self.api+"x"+str(community_id)+"/s/chat/thread/"+thread_id+"/member/"+author+"?allowRejoin="+str(allowRejoin)+"&sid="+self.sid, headers={'Content-Type': 'application/json'})
 		return response.json();
 
 	def loadStickerImage(self, path):
