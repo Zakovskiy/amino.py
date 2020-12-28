@@ -26,6 +26,7 @@ class Client:
 			print("Error: "+result.json()["api:message"]);
 
 	def reload_socket(self):
+		print("Debug>>>Reload socket");
 		self.socket_time = timestamp();
 		self.ws = create_connection("wss://ws1.narvii.com?signbody=015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C%7C"+str((int(timestamp() * 1000)))+"&sid="+self.sid);
 
@@ -125,7 +126,7 @@ class Client:
 		return response.json();
 
 	def listen(self):
-		if((timestamp() - self.socket_time) > 240):
+		if((timestamp() - self.socket_time) > 120):
 			self.ws.close();
 			self.reload_socket();
 		return json.loads(self.ws.recv());
@@ -195,9 +196,12 @@ class Client:
 		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chatId}/message?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=json.dumps(data))
 		return response.json()
 
-	def send(self, message, community_id : str, thread_id, notifcation : list = None, clientRefId:int=43196704):
+	def send(self, message, community_id : str, thread_id, reply_message_id:str = None, notifcation : list = None, clientRefId:int=43196704):
+		data = {"content":message,"type":0,"clientRefId":clientRefId,"mentionedArray": [notifcation], "timestamp":(int(timestamp() * 1000))};
+		if (reply_message_id != None):
+			data["replyMessageId"] = reply_message_id;
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
-			data=json.dumps({"content":message,"type":0,"clientRefId":clientRefId,"mentionedArray": [notifcation], "timestamp":(int(timestamp() * 1000))}),
+			data=json.dumps(data),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
