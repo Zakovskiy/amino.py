@@ -12,4 +12,4 @@ import amino
 Amino = amino.Client("your email", "your password");
 ```
 
-### [Telegram](https://t.me/zakodro4)
+### [Telegram](https://t.me/zakovskiy)
