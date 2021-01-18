@@ -14,10 +14,10 @@ from os import urandom
 from locale import getdefaultlocale as locale
 
 class Client:
-	api = "https://service.narvii.com/api/v1/";
 
 	def __init__(self, email, password):
-		result = requests.post(self.api+"g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":"015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C","clientType":100,"action":"normal","timestamp":(int(timestamp() * 1000))}), headers={'Content-Type': 'application/json'})
+		self.api = "https://service.narvii.com/api/v1/";
+		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":"015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C","clientType":100,"action":"normal","timestamp":(int(timestamp() * 1000))}), headers={'Content-Type': 'application/json'})
 		try:
 			self.sid = result.json()["sid"];
 			self.auid = result.json()["auid"];
