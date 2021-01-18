@@ -1,8 +1,7 @@
 # coding=utf-8
 import requests
 import json
-from time import timezone
-from time import time as timestamp
+import time
 from websocket import create_connection
 import base64
 from typing import BinaryIO
@@ -17,7 +16,7 @@ class Client:
 
 	def __init__(self, email, password):
 		self.api = "https://service.narvii.com/api/v1/";
-		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":"015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C","clientType":100,"action":"normal","timestamp":(int(timestamp() * 1000))}), headers={'Content-Type': 'application/json'})
+		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":"015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C","clientType":100,"action":"normal","timestamp":(int(time.time() * 1000))}), headers={'Content-Type': 'application/json'})
 		try:
 			self.sid = result.json()["sid"];
 			self.auid = result.json()["auid"];
@@ -27,11 +26,11 @@ class Client:
 
 	def reload_socket(self):
 		print("Debug>>>Reload socket");
-		self.socket_time = timestamp();
-		self.ws = create_connection("wss://ws1.narvii.com?signbody=015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C%7C"+str((int(timestamp() * 1000)))+"&sid="+self.sid);
+		self.socket_time = time.time();
+		self.ws = create_connection("wss://ws1.narvii.com?signbody=015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C%7C"+str((int(time.time() * 1000)))+"&sid="+self.sid);
 
 	def accept_host(self, community_id:int = None, chatId: str = None):
-		data = json.dumps({"timestamp": int(timestamp() * 1000)})
+		data = json.dumps({"timestamp": int(time.time() * 1000)})
 
 		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{chatId}/accept-organizer?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
 		return response.json()
@@ -45,10 +44,10 @@ class Client:
 			"deviceID": deviceId,
 			"bundleID": "com.narvii.amino.master",
 			"clientType": 100,
-			"timezone": -timezone // 1000,
+			"timezone": -int(time.timezone) // 1000,
 			"systemPushEnabled": True,
 			"locale": locale()[0],
-			"timestamp": int(timestamp() * 1000)
+			"timestamp": int(time.time() * 1000)
 		})
 
 		response = requests.post(f"{self.api}/g/s/device", headers={'Content-Type': 'application/json'}, data=data)
@@ -77,7 +76,7 @@ class Client:
 	def transfer_host(self, community_id, chatId: str, userIds: list):
 		data = json.dumps({
 			"uidList": userIds,
-			"timestamp": int(timestamp() * 1000)
+			"timestamp": int(time.time() * 1000)
 		})
 
 		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chatId}/transfer-organizer?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data).json()
@@ -97,7 +96,7 @@ class Client:
 
 	def sendAudio(self, path, community_id, thread_id):
 		audio = base64.b64encode(open(path, "rb").read())
-		return requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid, data=json.dumps({"content":None,"type":2,"clientRefId":827027430,"timestamp":int(timestamp() * 1000),"mediaType":110,"mediaUploadValue":audio,"attachedObject":None}), headers={'Content-Type': 'application/json'}).json();
+		return requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid, data=json.dumps({"content":None,"type":2,"clientRefId":827027430,"timestamp":int(time.time() * 1000),"mediaType":110,"mediaUploadValue":audio,"attachedObject":None}), headers={'Content-Type': 'application/json'}).json();
 
 	def ban(self, userId: str, community_id, reason: str, banType: int = None):
 
@@ -106,7 +105,7 @@ class Client:
 			"note": {
 				"content": reason
 			},
-			"timestamp": int(timestamp() * 1000)
+			"timestamp": int(time.time() * 1000)
 		})).json();
 		return response;
 
@@ -119,27 +118,27 @@ class Client:
 			"note": {
 				"content": reason
 			},
-			"timestamp": int(timestamp() * 1000)
+			"timestamp": int(time.time() * 1000)
 		})
 
 		response = requests.post(self.api+"x"+community_id+"/s/user-profile/"+userId+"/unban?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
 		return response.json();
 
 	def listen(self):
-		if((timestamp() - self.socket_time) > 120):
+		if((time.time() - self.socket_time) > 120):
 			self.ws.close();
 			self.reload_socket();
 		return json.loads(self.ws.recv());
 
 	def setNickname(self, nickname, community_id, uid):
 		result = requests.post(self.api+"x"+str(community_id)+"/s/user-profile/"+uid+"?sid="+self.sid,
-			data=json.dumps({"nickname":nickname, "timestamp":(int(timestamp() * 1000))}),
+			data=json.dumps({"nickname":nickname, "timestamp":(int(time.time() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
 	def createUserChat(self, message, community_id, uid):
 		result = requests.post(self.api+"x"+str(community_id)+"/s/chat/thread?sid="+self.sid,
-			data=json.dumps({'inviteeUids': [uid],"initialMessageContent":message,"type":0,"timestamp":(int(timestamp() * 1000))}),
+			data=json.dumps({'inviteeUids': [uid],"initialMessageContent":message,"type":0,"timestamp":(int(time.time() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;я
 
@@ -147,7 +146,7 @@ class Client:
 		data = json.dumps({
 			"adminOpName": 102,
 			"adminOpNote": {"content": reason},
-			"timestamp": int(timestamp() * 1000)
+			"timestamp": int(time.time() * 1000)
 		})
 		if not asStaff: response = requests.delete(self.api+"x"+str(community_id)+"/s/chat/thread/"+thread_id+"/message/"+messageId+"?sid="+self.sid, headers={'Content-Type': 'application/json'})
 		else: response = requests.post(self.api+"x"+str(community_id)+"/s/chat/thread/"+thread_id+"/message/"+messageId+"/admin?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
@@ -165,7 +164,7 @@ class Client:
 
 	def createStickerpack(self, name, stickers, community_id):
 		result = requests.post(self.api+"x"+str(com)+"/s/sticker-collection?sid="+self.sid,
-			data=json.dumps({"collectionType":3,"description":"stickerpack","iconSourceStickerIndex":0,"name":name,"stickerList":stickers,"timestamp":(int(timestamp() * 1000))}),
+			data=json.dumps({"collectionType":3,"description":"stickerpack","iconSourceStickerIndex":0,"name":name,"stickerList":stickers,"timestamp":(int(time.time() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
@@ -174,14 +173,14 @@ class Client:
 		return result;
 
 	def vc_permission(self, community_id: str, thread_id: str, permission: int):
-		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/vvchat-permission?sid="+self.sid,headers={'Content-Type': 'application/json'}, data=json.dumps({"vvChatJoinType": permission,"timestamp": int(timestamp() * 1000)}))
+		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/vvchat-permission?sid="+self.sid,headers={'Content-Type': 'application/json'}, data=json.dumps({"vvChatJoinType": permission,"timestamp": int(time.time() * 1000)}))
 		return response.json();
 
 	def sendEmbed(self, community_id: str, chatId: str, message: str = None, embedTitle: str = None, embedContent: str = None, embedImage: BinaryIO = None):
 		data = {
 			"type": 0,
 			"content": message,
-			"clientRefId": int(timestamp() / 10 % 1000000000),
+			"clientRefId": int(time.time() / 10 % 1000000000),
 			"attachedObject": {
 				"objectId": None,
 				"objectType": 100,
@@ -191,13 +190,13 @@ class Client:
 				"mediaList": b""+embedImage
 			},
 			"extensions": {"mentionedArray": None},
-			"timestamp": int(timestamp() * 1000)
+			"timestamp": int(time.time() * 1000)
 		}
 		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chatId}/message?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=json.dumps(data))
 		return response.json()
 
 	def send(self, message, community_id : str, thread_id, reply_message_id:str = None, notifcation : list = None, clientRefId:int=43196704):
-		data = {"content":message,"type":0,"clientRefId":clientRefId,"mentionedArray": [notifcation], "timestamp":(int(timestamp() * 1000))};
+		data = {"content":message,"type":0,"clientRefId":clientRefId,"mentionedArray": [notifcation], "timestamp":(int(time.time() * 1000))};
 		if (reply_message_id != None):
 			data["replyMessageId"] = reply_message_id;
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
@@ -207,13 +206,13 @@ class Client:
 
 	def sendSystem(self, message, community_id, thread_id):
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
-			data=json.dumps({"content":message,"type":100,"clientRefId":43196704,"timestamp":(int(timestamp() * 1000))}),
+			data=json.dumps({"content":message,"type":100,"clientRefId":43196704,"timestamp":(int(time.time() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
 	def adminDeleteMessage(self, mid, community_id, thread_id):
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message/{mid}/admin?sid="+self.sid,
-			data=json.dumps({"adminOpName": 102, "timestamp":(int(timestamp() * 1000))}),
+			data=json.dumps({"adminOpName": 102, "timestamp":(int(time.time() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
@@ -240,12 +239,12 @@ class Client:
 	def sendImage(self, image, community_id, thread_id):
 		img = base64.b64encode(open(image, "rb").read())
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
-			data=json.dumps({"type":0,"clientRefId":43196704,"timestamp":(int(timestamp() * 1000)),"mediaType":100,"mediaUploadValue":img.strip().decode(),"mediaUploadValueContentType" : "image/jpg","mediaUhqEnabled":False,"attachedObject":None}),
+			data=json.dumps({"type":0,"clientRefId":43196704,"timestamp":(int(time.time() * 1000)),"mediaType":100,"mediaUploadValue":img.strip().decode(),"mediaUploadValueContentType" : "image/jpg","mediaUhqEnabled":False,"attachedObject":None}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
 	def join_community(self, community_id: str):
-		response = requests.post(f"{self.api}x{community_id}/s/community/join?sid="+self.sid, data=json.dumps({"timestamp": int(timestamp() * 1000)}), headers={'Content-Type': 'application/json'}).json()
+		response = requests.post(f"{self.api}x{community_id}/s/community/join?sid="+self.sid, data=json.dumps({"timestamp": int(time.time() * 1000)}), headers={'Content-Type': 'application/json'}).json()
 		return response
 
 	def invite_to_chat(self, community_id, thread_id: str, userId: [str, list]):
@@ -255,7 +254,7 @@ class Client:
 
 		data = json.dumps({
 			"uids": userIds,
-			"timestamp": int(timestamp() * 1000)
+			"timestamp": int(time.time() * 1000)
 		})
 
 		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/member/invite?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
@@ -280,13 +279,13 @@ class Client:
 	def sendGif(self, image, community_id, thread_id):
 		img = base64.b64encode(open(image, "rb").read())
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
-			data=json.dumps({"type":0,"clientRefId":43196704,"timestamp":(int(timestamp() * 1000)),"mediaType":100,"mediaUploadValue":img.strip().decode(),"mediaUploadValueContentType" : "image/gid","mediaUhqEnabled":False,"attachedObject":None}),
+			data=json.dumps({"type":0,"clientRefId":43196704,"timestamp":(int(time.time() * 1000)),"mediaType":100,"mediaUploadValue":img.strip().decode(),"mediaUploadValueContentType" : "image/gid","mediaUhqEnabled":False,"attachedObject":None}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
 	def commentProfile(self, content, community_id, author):
 		result = requests.post(f"{self.api}x{community_id}/s/user-profile/{author}/comment?sid="+self.sid,
-			data=json.dumps({"content":content,'mediaList': [],"eventSource":"PostDetailView","timestamp":(int(timestamp() * 1000))}),
+			data=json.dumps({"content":content,'mediaList': [],"eventSource":"PostDetailView","timestamp":(int(time.time() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
@@ -302,27 +301,27 @@ class Client:
 		response = requests.get(f"{self.api}/g/s-x{community_id}/community/info?withInfluencerList=1&withTopicList=true&influencerListOrderStrategy=fansCount", headers={'Content-Type': 'application/json'})
 		return response.json();
 
-	def check(self, community_id, tz: str = -timezone // 1000):
-		data = json.dumps({"timezone": tz,"timestamp": int(timestamp() * 1000)})
+	def check(self, community_id:int = 0, tz: int = -int(time.timezone) // 1000):
+		data = json.dumps({"timezone": tz,"timestamp": int(time.time() * 1000)})
 
 		response = requests.post(f"{self.api}/x{community_id}/s/check-in?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
 		return response.json()
 
 	def send_coins_blog(self, community_id:int = 0, blogId:str = None, coins:int = None, transactionId:str = None):
 		if(transactionId is None): transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')));
-		response = requests.post(f"{self.api}/x{community_id}/s/blog/{blogId}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId": transactionId},"timestamp": int(timestamp() * 1000)}))
+		response = requests.post(f"{self.api}/x{community_id}/s/blog/{blogId}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId": transactionId},"timestamp": int(time.time() * 1000)}))
 		return response.json();
 
 	def send_coins_chat(self, community_id:int = None, thread_id:str = None, coins:int = None, transactionId:str = None):
 		if(transactionId is None): transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')));
-		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId":transactionId},"timestamp": int(timestamp() * 1000)}))
+		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId":transactionId},"timestamp": int(time.time() * 1000)}))
 		print(response.json());
 		return transactionId;
 
-	def lottery(self, community_id, tz: str = -timezone // 1000):
+	def lottery(self, community_id, tz: str = -int(time.timezone) // 1000):
 		data = json.dumps({
 			"timezone": tz,
-			"timestamp": int(timestamp() * 1000)
+			"timestamp": int(time.time() * 1000)
 		})
 
 		response = requests.post(f"{self.api}/x{community_id}/s/check-in/lottery?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
@@ -331,11 +330,11 @@ class Client:
 	def edit_thread(self, community_id:int = None, thread_id:str = None, content:str = None, title:str = None, backgroundImage:str = None):
 		res = [];
 		if backgroundImage is not None:
-			data = json.dumps({"media": [100, backgroundImage, None], "timestamp": int(timestamp() * 1000)});
+			data = json.dumps({"media": [100, backgroundImage, None], "timestamp": int(time.time() * 1000)});
 			response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}/background?sid="+self.sid, data=data, headers={'Content-Type': 'application/json'});
 			res.append(response.json());
 
-		data = {"timestamp":int(timestamp() * 1000)};
+		data = {"timestamp":int(time.time() * 1000)};
 
 		if(content): data["content"] = content;
 		if(title):   data["title"]   = title;
