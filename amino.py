@@ -61,8 +61,8 @@ class Client:
 		response = requests.get(f"{self.api}/g/s/wallet/coin/history?start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
 		return response.json();
 
-	def moderation_history_user(self, community_id, userId: str = None, size: int = 25):
-		response = requests.get(self.api+"x"+community_id+"/s/admin/operation?pagingType=t&size="+str(size)+"&sid="+self.sid, headers={'Content-Type': 'application/json'})
+	def moderation_history_user(self, community_id:int = 0, userId: str = None, size: int = 25):
+		response = requests.get(f"{self.api}x{community_id}/s/admin/operation?pagingType=t&size={size}&sid={self.sid}", headers={'Content-Type': 'application/json'})
 		return response.json();
 
 	def get_comms(self, start: int = 0, size: int = 25):
@@ -70,7 +70,7 @@ class Client:
 		return response
 
 	def watch_ad(self):
-		response = requests.post(self.api+"g/s/wallet/ads/video/start?sid="+self.sid, headers={'Content-Type': 'application/json'})
+		response = requests.post(f"{self.api}g/s/wallet/ads/video/start?sid={self.sid}", headers={'Content-Type': 'application/json'})
 		return response.json();
 
 	def transfer_host(self, community_id, chatId: str, userIds: list):
@@ -121,7 +121,7 @@ class Client:
 			"timestamp": int(time.time() * 1000)
 		})
 
-		response = requests.post(self.api+"x"+community_id+"/s/user-profile/"+userId+"/unban?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
+		response = requests.post(f"{self.api}x{community_id}/s/user-profile/{userId}/unban?sid={self.sid}", headers={'Content-Type': 'application/json'}, data=data)
 		return response.json();
 
 	def listen(self):
@@ -130,14 +130,14 @@ class Client:
 			self.reload_socket();
 		return json.loads(self.ws.recv());
 
-	def setNickname(self, nickname, community_id, uid):
-		result = requests.post(self.api+"x"+str(community_id)+"/s/user-profile/"+uid+"?sid="+self.sid,
+	def setNickname(self, nickname, community_id):
+		result = requests.post(f"{self.api}x{community_id}/s/user-profile/{Amino.auid}?sid="+self.sid,
 			data=json.dumps({"nickname":nickname, "timestamp":(int(time.time() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
 	def createUserChat(self, message, community_id, uid):
-		result = requests.post(self.api+"x"+str(community_id)+"/s/chat/thread?sid="+self.sid,
+		result = requests.post(f"{self.api}x{community_id}/s/chat/thread?sid="+self.sid,
 			data=json.dumps({'inviteeUids': [uid],"initialMessageContent":message,"type":0,"timestamp":(int(time.time() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;я
@@ -148,12 +148,12 @@ class Client:
 			"adminOpNote": {"content": reason},
 			"timestamp": int(time.time() * 1000)
 		})
-		if not asStaff: response = requests.delete(self.api+"x"+str(community_id)+"/s/chat/thread/"+thread_id+"/message/"+messageId+"?sid="+self.sid, headers={'Content-Type': 'application/json'})
-		else: response = requests.post(self.api+"x"+str(community_id)+"/s/chat/thread/"+thread_id+"/message/"+messageId+"/admin?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
+		if not asStaff: response = requests.delete(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message/{messageId}?sid="+self.sid, headers={'Content-Type': 'application/json'})
+		else: response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message/{messageId}/admin?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
 		return response.json()
 
 	def kick(self, author: str, thread_id: str, community_id, allowRejoin:int = 0):
-		response = requests.delete(self.api+"x"+str(community_id)+"/s/chat/thread/"+thread_id+"/member/"+author+"?allowRejoin="+str(allowRejoin)+"&sid="+self.sid, headers={'Content-Type': 'application/json'})
+		response = requests.delete(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/member/{author}?allowRejoin={allowRejoin}&sid="+self.sid, headers={'Content-Type': 'application/json'})
 		return response.json();
 
 	def loadStickerImage(self, path):
@@ -163,13 +163,13 @@ class Client:
 		return result;
 
 	def createStickerpack(self, name, stickers, community_id):
-		result = requests.post(self.api+"x"+str(com)+"/s/sticker-collection?sid="+self.sid,
+		result = requests.post(f"{self.api}x{com}/s/sticker-collection?sid="+self.sid,
 			data=json.dumps({"collectionType":3,"description":"stickerpack","iconSourceStickerIndex":0,"name":name,"stickerList":stickers,"timestamp":(int(time.time() * 1000))}),
 			headers={'Content-Type': 'application/json'}).json();
 		return result;
 
 	def searchUserThread(self, uid, community_id):
-		result = requests.get(self.api+"x"+str(community_id)+"/s/chat/thread?type=exist-single&cv=1.2&q="+uid+"&sid="+self.sid).json();
+		result = requests.get(f"{self.api}x{community_id}/s/chat/thread?type=exist-single&cv=1.2&q={uid}&sid="+self.sid).json();
 		return result;
 
 	def vc_permission(self, community_id: str, thread_id: str, permission: int):
