@@ -1,7 +1,7 @@
 # Amino API on Python
 
 # Install
-```python
+```
 git clone https://github.com/Zakovskiy/amino.py
 ```
 
