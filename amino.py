@@ -1,4 +1,9 @@
 # coding=utf-8
+'''
+# TG  = https://t.me/zakovskiy
+# Git = https://github.com/Zakovskiy
+# Vk  = https://vk.com/id514492216
+'''
 import requests
 import json
 import time
