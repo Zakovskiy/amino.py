@@ -1,3 +1,6 @@
+# /Zakovskiy/amino.py/
+# simple amino bot
+
 from amino import Client
 
 Amino = Client(email="email", password="password");
