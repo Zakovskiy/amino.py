@@ -141,11 +141,13 @@ class Client:
 			self.ws.close();
 			self.reload_socket();
 
+		res = {};
+		data = {};
 		try:
 			res = json.loads(self.ws.recv());
 		except:
 			res["t"] = 0;
-			
+
 		if res["t"] == 1000:
 			data = {
 				"message_type":res["o"]["chatMessage"]["type"],
