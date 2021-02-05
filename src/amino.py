@@ -144,7 +144,8 @@ class Client:
 		try:
 			res = json.loads(self.ws.recv());
 		except:
-			pass;
+			res["t"] = 0;
+			
 		if res["t"] == 1000:
 			data = {
 				"message_type":res["o"]["chatMessage"]["type"],
