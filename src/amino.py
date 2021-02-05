@@ -21,7 +21,14 @@ class Client:
 
 	def __init__(self, email, password):
 		self.api = "https://service.narvii.com/api/v1/";
-		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":"015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C","clientType":100,"action":"normal","timestamp":(int(time.time() * 1000))}), headers={'Content-Type': 'application/json'})
+		self.headers = {'Content-Type': 'application/json'};
+		if not email and not password:
+			self.sid = "?";
+		else:
+			self.authorization(email, password);
+
+	def authorization(self, email, password):
+		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":"015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C","clientType":100,"action":"normal","timestamp":(int(time.time() * 1000))}), headers=self.headers)
 		try:
 			self.sid = result.json()["sid"];
 			self.auid = result.json()["auid"];
@@ -37,11 +44,11 @@ class Client:
 	def accept_host(self, community_id:int = None, chatId: str = None):
 		data = json.dumps({"timestamp": int(time.time() * 1000)})
 
-		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{chatId}/accept-organizer?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
+		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{chatId}/accept-organizer?sid="+self.sid, headers=self.headers, data=data)
 		return response.json()
 
 	def get_notification(self, community_id, start:int = 0, size:int = 10):
-		response = requests.get(f"{self.api}/x{community_id}/s/notification?start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'});
+		response = requests.get(f"{self.api}/x{community_id}/s/notification?start={start}&size={size}&sid="+self.sid, headers=self.headers);
 		return response.json();
 
 	def check_device(self, deviceId: str):
@@ -55,27 +62,27 @@ class Client:
 			"timestamp": int(time.time() * 1000)
 		})
 
-		response = requests.post(f"{self.api}/g/s/device", headers={'Content-Type': 'application/json'}, data=data)
+		response = requests.post(f"{self.api}/g/s/device", headers=self.headers, data=data)
 		return response.json()
 
 	def get_wallet_info(self):
-		response = requests.get(f"{self.api}/g/s/wallet?sid="+self.sid, headers={'Content-Type': 'application/json'}).json();
+		response = requests.get(f"{self.api}/g/s/wallet?sid="+self.sid, headers=self.headers).json();
 		return response;
 
 	def get_wallet_history(self, start:int = 0, size:int = 25):
-		response = requests.get(f"{self.api}/g/s/wallet/coin/history?start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
+		response = requests.get(f"{self.api}/g/s/wallet/coin/history?start={start}&size={size}&sid="+self.sid, headers=self.headers)
 		return response.json();
 
 	def moderation_history_user(self, community_id:int = 0, userId: str = None, size: int = 25):
-		response = requests.get(f"{self.api}x{community_id}/s/admin/operation?pagingType=t&size={size}&sid={self.sid}", headers={'Content-Type': 'application/json'})
+		response = requests.get(f"{self.api}x{community_id}/s/admin/operation?pagingType=t&size={size}&sid={self.sid}", headers=self.headers)
 		return response.json();
 
 	def get_comms(self, start: int = 0, size: int = 25):
-		response = requests.get(f"{self.api}g/s/community/joined?start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'}).json()
+		response = requests.get(f"{self.api}g/s/community/joined?start={start}&size={size}&sid="+self.sid, headers=self.headers).json()
 		return response
 
 	def watch_ad(self):
-		response = requests.post(f"{self.api}g/s/wallet/ads/video/start?sid={self.sid}", headers={'Content-Type': 'application/json'})
+		response = requests.post(f"{self.api}g/s/wallet/ads/video/start?sid={self.sid}", headers=self.headers)
 		return response.json();
 
 	def transfer_host(self, community_id, chatId: str, userIds: list):
@@ -84,28 +91,28 @@ class Client:
 			"timestamp": int(time.time() * 1000)
 		})
 
-		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chatId}/transfer-organizer?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data).json()
+		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chatId}/transfer-organizer?sid="+self.sid, headers=self.headers, data=data).json()
 		return response;
 
 	def join_chat(self, community_id, thread_id):
-		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chat_id}/member/{self.auid}?sid="+self.sid, headers={'Content-Type': 'application/json'}).json()
+		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chat_id}/member/{self.auid}?sid="+self.sid, headers=self.headers).json()
 		return response;
 
 	def getMessages(self, community_id, thread_id, size):
-		res = requests.get(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?v=2&pagingType=t&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
+		res = requests.get(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?v=2&pagingType=t&size={size}&sid="+self.sid, headers=self.headers)
 		return res.json()
 
 	def getThread(self, community_id, thread_id):
-		res = requests.get(f"{self.api}x{community_id}/s/chat/thread/{thread_id}?sid="+self.sid, headers={'Content-Type': 'application/json'});
+		res = requests.get(f"{self.api}x{community_id}/s/chat/thread/{thread_id}?sid="+self.sid, headers=self.headers);
 		return res.json();
 
 	def sendAudio(self, path, community_id, thread_id):
 		audio = base64.b64encode(open(path, "rb").read())
-		return requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid, data=json.dumps({"content":None,"type":2,"clientRefId":827027430,"timestamp":int(time.time() * 1000),"mediaType":110,"mediaUploadValue":audio,"attachedObject":None}), headers={'Content-Type': 'application/json'}).json();
+		return requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid, data=json.dumps({"content":None,"type":2,"clientRefId":827027430,"timestamp":int(time.time() * 1000),"mediaType":110,"mediaUploadValue":audio,"attachedObject":None}), headers=self.headers).json();
 
 	def ban(self, userId: str, community_id, reason: str, banType: int = None):
 
-		response = requests.post(f"{self.api}x{community_id}/s/user-profile/{userId}/ban?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=json.dumps({
+		response = requests.post(f"{self.api}x{community_id}/s/user-profile/{userId}/ban?sid="+self.sid, headers=self.headers, data=json.dumps({
 			"reasonType": banType,
 			"note": {
 				"content": reason
@@ -115,7 +122,7 @@ class Client:
 		return response;
 
 	def get_banned_users(self, community_id, start: int = 0, size: int = 25):
-		response = requests.get(f"{self.api}x{community_id}/s/user-profile?type=banned&start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
+		response = requests.get(f"{self.api}x{community_id}/s/user-profile?type=banned&start={start}&size={size}&sid="+self.sid, headers=self.headers)
 		return response.json();
 
 	def unban(self, community_id, userId: str, reason: str):
@@ -126,25 +133,44 @@ class Client:
 			"timestamp": int(time.time() * 1000)
 		})
 
-		response = requests.post(f"{self.api}x{community_id}/s/user-profile/{userId}/unban?sid={self.sid}", headers={'Content-Type': 'application/json'}, data=data)
+		response = requests.post(f"{self.api}x{community_id}/s/user-profile/{userId}/unban?sid={self.sid}", headers=self.headers, data=data)
 		return response.json();
 
-	def listen(self):
-		if((time.time() - self.socket_time) > 120):
+	def listen(self, return_data:int=1):
+		if((time.time() - self.socket_time) > 100):
 			self.ws.close();
 			self.reload_socket();
-		return json.loads(self.ws.recv());
+
+		try:
+			res = json.loads(self.ws.recv());
+		except:
+			pass;
+		if res["t"] == 1000:
+			data = {
+				"message_type":res["o"]["chatMessage"]["type"],
+				"community_id":res["o"]["ndcId"],
+				"thread_id":res["o"]["chatMessage"]["threadId"],
+				"author":res["o"]["chatMessage"]["author"]["uid"],
+				"nickname":res["o"]["chatMessage"]["author"]["nickname"],
+				"role":res["o"]["chatMessage"]["author"]["role"],
+				"message_id":res["o"]["chatMessage"]["messageId"],
+				"content":res["o"]["chatMessage"]["content"] if "content" in res["o"]["chatMessage"] else None
+			};
+			if return_data == 1:
+				data["json"] = res["o"];
+
+		return data;
 
 	def setNickname(self, nickname, community_id):
 		result = requests.post(f"{self.api}x{community_id}/s/user-profile/{Amino.auid}?sid="+self.sid,
 			data=json.dumps({"nickname":nickname, "timestamp":(int(time.time() * 1000))}),
-			headers={'Content-Type': 'application/json'}).json();
+			headers=self.headers).json();
 		return result;
 
 	def createUserChat(self, message, community_id, uid):
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread?sid="+self.sid,
 			data=json.dumps({'inviteeUids': [uid],"initialMessageContent":message,"type":0,"timestamp":(int(time.time() * 1000))}),
-			headers={'Content-Type': 'application/json'}).json();
+			headers=self.headers).json();
 		return result;я
 
 	def deleteMessage(self, thread_id: str, community_id, messageId: str, asStaff: bool = False, reason: str = None):
@@ -153,24 +179,24 @@ class Client:
 			"adminOpNote": {"content": reason},
 			"timestamp": int(time.time() * 1000)
 		})
-		if not asStaff: response = requests.delete(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message/{messageId}?sid="+self.sid, headers={'Content-Type': 'application/json'})
-		else: response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message/{messageId}/admin?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
+		if not asStaff: response = requests.delete(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message/{messageId}?sid="+self.sid, headers=self.headers)
+		else: response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message/{messageId}/admin?sid="+self.sid, headers=self.headers, data=data)
 		return response.json()
 
 	def kick(self, author: str, thread_id: str, community_id, allowRejoin:int = 0):
-		response = requests.delete(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/member/{author}?allowRejoin={allowRejoin}&sid="+self.sid, headers={'Content-Type': 'application/json'})
+		response = requests.delete(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/member/{author}?allowRejoin={allowRejoin}&sid="+self.sid, headers=self.headers)
 		return response.json();
 
 	def loadStickerImage(self, path):
 		result = requests.post(self.api+"g/s/media/upload/target/sticker?sid="+self.sid,
 			data=requests.get(path).content,
-			headers={'Content-Type': 'application/octet-stream'}).json();
+			headers=self.headers).json();
 		return result;
 
 	def createStickerpack(self, name, stickers, community_id):
 		result = requests.post(f"{self.api}x{com}/s/sticker-collection?sid="+self.sid,
 			data=json.dumps({"collectionType":3,"description":"stickerpack","iconSourceStickerIndex":0,"name":name,"stickerList":stickers,"timestamp":(int(time.time() * 1000))}),
-			headers={'Content-Type': 'application/json'}).json();
+			headers=self.headers).json();
 		return result;
 
 	def searchUserThread(self, uid, community_id):
@@ -178,7 +204,7 @@ class Client:
 		return result;
 
 	def vc_permission(self, community_id: str, thread_id: str, permission: int):
-		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/vvchat-permission?sid="+self.sid,headers={'Content-Type': 'application/json'}, data=json.dumps({"vvChatJoinType": permission,"timestamp": int(time.time() * 1000)}))
+		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/vvchat-permission?sid="+self.sid,headers=self.headers, data=json.dumps({"vvChatJoinType": permission,"timestamp": int(time.time() * 1000)}))
 		return response.json();
 
 	def sendEmbed(self, community_id: str, chatId: str, message: str = None, embedTitle: str = None, embedContent: str = None, embedImage: BinaryIO = None):
@@ -197,7 +223,7 @@ class Client:
 			"extensions": {"mentionedArray": None},
 			"timestamp": int(time.time() * 1000)
 		}
-		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chatId}/message?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chatId}/message?sid="+self.sid, headers=self.headers, data=json.dumps(data))
 		return response.json()
 
 	def send(self, message, community_id : str, thread_id, reply_message_id:str = None, notifcation : list = None, clientRefId:int=43196704):
@@ -206,19 +232,19 @@ class Client:
 			data["replyMessageId"] = reply_message_id;
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
 			data=json.dumps(data),
-			headers={'Content-Type': 'application/json'}).json();
+			headers=self.headers).json();
 		return result;
 
 	def sendSystem(self, message, community_id, thread_id):
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
 			data=json.dumps({"content":message,"type":100,"clientRefId":43196704,"timestamp":(int(time.time() * 1000))}),
-			headers={'Content-Type': 'application/json'}).json();
+			headers=self.headers).json();
 		return result;
 
 	def adminDeleteMessage(self, mid, community_id, thread_id):
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message/{mid}/admin?sid="+self.sid,
 			data=json.dumps({"adminOpName": 102, "timestamp":(int(time.time() * 1000))}),
-			headers={'Content-Type': 'application/json'}).json();
+			headers=self.headers).json();
 		return result;
 
 	def getUsersThread(self, community_id, thread_id):
@@ -230,7 +256,7 @@ class Client:
 		return result;
 
 	def thank_tip(self, community_id, thread_id: str, author: str):
-		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/tipping/tipped-users/{author}/thank?sid="+self.sid, headers={'Content-Type': 'application/json'})
+		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/tipping/tipped-users/{author}/thank?sid="+self.sid, headers=self.headers)
 		return response.json();
 
 	def getUser(self, user_id, community_id):
@@ -238,18 +264,18 @@ class Client:
 		return result;
 
 	def get_tipped_users_wall(self, community_id, blog_id, start:int = 0, size:int = 25):
-		response = requests.get(f"{self.api}/x{community_id}/s/blog/{blog_id}/tipping/tipped-users-summary?start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'});
+		response = requests.get(f"{self.api}/x{community_id}/s/blog/{blog_id}/tipping/tipped-users-summary?start={start}&size={size}&sid="+self.sid, headers=self.headers);
 		return response.json();
 
 	def sendImage(self, image, community_id, thread_id):
 		img = base64.b64encode(open(image, "rb").read())
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
 			data=json.dumps({"type":0,"clientRefId":43196704,"timestamp":(int(time.time() * 1000)),"mediaType":100,"mediaUploadValue":img.strip().decode(),"mediaUploadValueContentType" : "image/jpg","mediaUhqEnabled":False,"attachedObject":None}),
-			headers={'Content-Type': 'application/json'}).json();
+			headers=self.headers).json();
 		return result;
 
 	def join_community(self, community_id: str):
-		response = requests.post(f"{self.api}x{community_id}/s/community/join?sid="+self.sid, data=json.dumps({"timestamp": int(time.time() * 1000)}), headers={'Content-Type': 'application/json'}).json()
+		response = requests.post(f"{self.api}x{community_id}/s/community/join?sid="+self.sid, data=json.dumps({"timestamp": int(time.time() * 1000)}), headers=self.headers).json()
 		return response
 
 	def invite_to_chat(self, community_id, thread_id: str, userId: [str, list]):
@@ -262,15 +288,15 @@ class Client:
 			"timestamp": int(time.time() * 1000)
 		})
 
-		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/member/invite?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
+		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/member/invite?sid="+self.sid, headers=self.headers, data=data)
 		return response.json()
 
 	def join_chat(self, community_id, thread_id):
-		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}?sid="+self.sid, headers={'Content-Type': 'application/json'}).json()
+		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}?sid="+self.sid, headers=self.headers).json()
 		return response;
 
 	def get_online_users(self, community_id, start: int = 0, size: int = 25):
-		response = requests.get(f"{self.api}/x{community_id}/s/live-layer?topic=ndtopic:x{community_id}:online-members&start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
+		response = requests.get(f"{self.api}/x{community_id}/s/live-layer?topic=ndtopic:x{community_id}:online-members&start={start}&size={size}&sid="+self.sid, headers=self.headers)
 		return response.json()
 
 	def get_users_community(self, community_id, start:int = 0, size:int = 25):
@@ -278,38 +304,38 @@ class Client:
 		return response
 
 	def leave_chat(self, community_id, thread_id):
-		response = requests.delete(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}?sid="+self.sid, headers={'Content-Type': 'application/json'}).json()
+		response = requests.delete(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}?sid="+self.sid, headers=self.headers).json()
 		return response;
 
 	def sendGif(self, image, community_id, thread_id):
 		img = base64.b64encode(open(image, "rb").read())
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
 			data=json.dumps({"type":0,"clientRefId":43196704,"timestamp":(int(time.time() * 1000)),"mediaType":100,"mediaUploadValue":img.strip().decode(),"mediaUploadValueContentType" : "image/gid","mediaUhqEnabled":False,"attachedObject":None}),
-			headers={'Content-Type': 'application/json'}).json();
+			headers=self.headers).json();
 		return result;
 
 	def commentProfile(self, content, community_id, author):
 		result = requests.post(f"{self.api}x{community_id}/s/user-profile/{author}/comment?sid="+self.sid,
 			data=json.dumps({"content":content,'mediaList': [],"eventSource":"PostDetailView","timestamp":(int(time.time() * 1000))}),
-			headers={'Content-Type': 'application/json'}).json();
+			headers=self.headers).json();
 		return result;
 
 	def get_from_code(self, code: str):
-		response = requests.get(f"{self.api}/g/s/link-resolution?q={code}", headers={'Content-Type': 'application/json'})
+		response = requests.get(f"{self.api}/g/s/link-resolution?q={code}", headers=self.headers)
 		return response.json()
 
 	def get_user_blogs(self, community_id, author, start:int = 0,size:int = 25):
-		response = requests.get(f"{self.api}/x{community_id}/s/blog?type=user&q={author}&start={start}&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
+		response = requests.get(f"{self.api}/x{community_id}/s/blog?type=user&q={author}&start={start}&size={size}&sid="+self.sid, headers=self.headers)
 		return response.json()
 
 	def get_community_info(self, community_id):
-		response = requests.get(f"{self.api}/g/s-x{community_id}/community/info?withInfluencerList=1&withTopicList=true&influencerListOrderStrategy=fansCount", headers={'Content-Type': 'application/json'})
+		response = requests.get(f"{self.api}/g/s-x{community_id}/community/info?withInfluencerList=1&withTopicList=true&influencerListOrderStrategy=fansCount", headers=self.headers)
 		return response.json();
 
 	def check(self, community_id:int = 0, tz: int = -int(time.timezone) // 1000):
 		data = json.dumps({"timezone": tz,"timestamp": int(time.time() * 1000)})
 
-		response = requests.post(f"{self.api}/x{community_id}/s/check-in?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
+		response = requests.post(f"{self.api}/x{community_id}/s/check-in?sid="+self.sid, headers=self.headers, data=data)
 		return response.json()
 
 	def send_coins_blog(self, community_id:int = 0, blogId:str = None, coins:int = None, transactionId:str = None):
@@ -329,26 +355,26 @@ class Client:
 			"timestamp": int(time.time() * 1000)
 		})
 
-		response = requests.post(f"{self.api}/x{community_id}/s/check-in/lottery?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=data)
+		response = requests.post(f"{self.api}/x{community_id}/s/check-in/lottery?sid="+self.sid, headers=self.headers, data=data)
 		return response.json()
 
 	def edit_thread(self, community_id:int = None, thread_id:str = None, content:str = None, title:str = None, backgroundImage:str = None):
 		res = [];
 		if backgroundImage is not None:
 			data = json.dumps({"media": [100, backgroundImage, None], "timestamp": int(time.time() * 1000)});
-			response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}/background?sid="+self.sid, data=data, headers={'Content-Type': 'application/json'});
+			response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}/background?sid="+self.sid, data=data, headers=self.headers);
 			res.append(response.json());
 
 		data = {"timestamp":int(time.time() * 1000)};
 
 		if(content): data["content"] = content;
 		if(title):   data["title"]   = title;
-		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}?sid="+self.sid, headers={'Content-Type': 'application/json'}, data=json.dumps(data));
+		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}?sid="+self.sid, headers=self.headers, data=json.dumps(data));
 		res.append(response.json());
 		return res;
 
 	# Moder:{
 
 	def moderation_history_community(self, community_id, size: int = 25):
-		response = requests.get(f"{self.api}/x{community_id}/s/admin/operation?pagingType=t&size={size}&sid="+self.sid, headers={'Content-Type': 'application/json'})
+		response = requests.get(f"{self.api}/x{community_id}/s/admin/operation?pagingType=t&size={size}&sid="+self.sid, headers=self.headers)
 		return response.json();
