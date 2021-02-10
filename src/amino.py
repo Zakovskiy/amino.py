@@ -143,8 +143,11 @@ class Client:
 
 		res = {};
 		data = {};
+
 		try:
 			res = json.loads(self.ws.recv());
+			if return_data == 1:
+				data["json"] = res["o"];
 		except:
 			res["t"] = 0;
 
@@ -153,14 +156,18 @@ class Client:
 				"message_type":res["o"]["chatMessage"]["type"],
 				"community_id":res["o"]["ndcId"],
 				"thread_id":res["o"]["chatMessage"]["threadId"],
-				"author":res["o"]["chatMessage"]["author"]["uid"],
-				"nickname":res["o"]["chatMessage"]["author"]["nickname"],
-				"role":res["o"]["chatMessage"]["author"]["role"],
+				"author":res["o"]["chatMessage"]["author"]["uid"] if "author" in res["o"]["chatMessage"] else None,
+				"nickname":res["o"]["chatMessage"]["author"]["nickname"] if "author" in res["o"]["chatMessage"] else None,
+				"role":res["o"]["chatMessage"]["author"]["role"] if "author" in res["o"]["chatMessage"] else None,
 				"message_id":res["o"]["chatMessage"]["messageId"],
-				"content":res["o"]["chatMessage"]["content"] if "content" in res["o"]["chatMessage"] else None
+				"content":res["o"]["chatMessage"]["content"] if "content" in res["o"]["chatMessage"] else ""
 			};
-			if return_data == 1:
-				data["json"] = res["o"];
+		elif res["t"] == 10:
+			data = {
+				"message_type":-1,
+				"community_id":res["o"]["payload"]["ndcId"],
+				"thread_id":res["o"]["payload"]["tid"]
+			}
 
 		return data;
 
