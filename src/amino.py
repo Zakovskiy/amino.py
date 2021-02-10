@@ -168,6 +168,12 @@ class Client:
 				"community_id":res["o"]["payload"]["ndcId"],
 				"thread_id":res["o"]["payload"]["tid"]
 			}
+		elif res["t"] == 0:
+			data = {
+				"message_type":-1,
+				"community_id":0,
+				"thread_id":""
+			}
 
 		return data;
 
