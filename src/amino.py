@@ -33,8 +33,9 @@ class Client:
 			self.sid = result.json()["sid"];
 			self.auid = result.json()["auid"];
 			self.reload_socket();
+			return result.json()
 		except:
-			print("Error: "+result.json()["api:message"]);
+			exit("Error: "+result.json()["api:message"]);
 
 	def reload_socket(self):
 		print("Debug>>>Reload socket");
