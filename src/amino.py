@@ -1,9 +1,4 @@
 # coding=utf-8
-'''
-# TG  = https://t.me/zakovskiy
-# Git = https://github.com/Zakovskiy
-# Vk  = https://vk.com/id514492216
-'''
 import requests
 import json
 import time
@@ -21,21 +16,31 @@ class Client:
 
 	def __init__(self, email, password):
 		self.api = "https://service.narvii.com/api/v1/";
-		self.headers = {'Content-Type': 'application/json'};
+		self.headers = {
+			"NDCDEVICEID": "01A0FD1CA97F814B7EC131AF422DE2F51E679B16E79DC8F3CAB6EED44B67D1A59B6D427D7CE5C174FC",
+			"NDC-MSG-SIG": "Aa0ZDPOEgjt1EhyVYyZ5FgSZSqJt",
+			"Accept-Language": "en-US",
+			"Content-Type": "application/json; charset=utf-8",
+			"User-Agent": "Dalvik/2.1.0 (Linux; U; Android 5.1.1; SM-G973N Build/beyond1qlteue-user 5; com.narvii.amino.master/3.4.33562)", 
+			"Host": "service.narvii.com",
+			"Accept-Encoding": "gzip",
+			"Connection": "Keep-Alive"
+			}
 		if not email and not password:
 			self.sid = "?";
 		else:
 			self.authorization(email, password);
 
 	def authorization(self, email, password):
-		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":"015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C","clientType":100,"action":"normal","timestamp":(int(time.time() * 1000))}), headers=self.headers)
+		deviceId="01A0FD1CA97F814B7EC131AF422DE2F51E679B16E79DC8F3CAB6EED44B67D1A59B6D427D7CE5C174FC" 
+		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":deviceId,"clientType":100,"action":"normal","timestamp":(int(time.time() * 1000))}), headers=self.headers)
 		try:
 			self.sid = result.json()["sid"];
 			self.auid = result.json()["auid"];
 			self.reload_socket();
-			return result.json()
+			print("Успешный вход") 
 		except:
-			exit("Error: "+result.json()["api:message"]);
+			print("Error: "+result.json()["api:message"]);
 
 	def reload_socket(self):
 		print("Debug>>>Reload socket");
@@ -137,6 +142,8 @@ class Client:
 		response = requests.post(f"{self.api}x{community_id}/s/user-profile/{userId}/unban?sid={self.sid}", headers=self.headers, data=data)
 		return response.json();
 
+		
+
 	def listen(self, return_data:int=1):
 		if((time.time() - self.socket_time) > 100):
 			self.ws.close();
@@ -160,9 +167,12 @@ class Client:
 				"author":res["o"]["chatMessage"]["author"]["uid"] if "author" in res["o"]["chatMessage"] else None,
 				"nickname":res["o"]["chatMessage"]["author"]["nickname"] if "author" in res["o"]["chatMessage"] else None,
 				"role":res["o"]["chatMessage"]["author"]["role"] if "author" in res["o"]["chatMessage"] else None,
+				"level":res["o"]["chatMessage"]["author"]["level"] if "author" in res["o"]["chatMessage"] else None,
 				"message_id":res["o"]["chatMessage"]["messageId"],
-				"content":res["o"]["chatMessage"]["content"] if "content" in res["o"]["chatMessage"] else ""
-			};
+				"content":res["o"]["chatMessage"]["content"] if "content" in res["o"]["chatMessage"] else "",
+				"refId":res["o"]["chatMessage"]["clientRefId"] if "clientRefId" in res["o"]["chatMessage"] else "" 
+				};
+				
 		elif res["t"] == 10:
 			data = {
 				"message_type":-1,
@@ -175,8 +185,7 @@ class Client:
 				"community_id":0,
 				"thread_id":""
 			}
-
-		return data;
+		return data
 
 	def setNickname(self, nickname, community_id):
 		result = requests.post(f"{self.api}x{community_id}/s/user-profile/{Amino.auid}?sid="+self.sid,
@@ -285,9 +294,9 @@ class Client:
 		return response.json();
 
 	def sendImage(self, image, community_id, thread_id):
-		img = base64.b64encode(open(image, "rb").read())
+		image = base64.b64encode(open(image, "rb").read())	
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
-			data=json.dumps({"type":0,"clientRefId":43196704,"timestamp":(int(time.time() * 1000)),"mediaType":100,"mediaUploadValue":img.strip().decode(),"mediaUploadValueContentType" : "image/jpg","mediaUhqEnabled":False,"attachedObject":None}),
+			data=json.dumps({"type":0,"clientRefId":43196704,"timestamp":(int(time.time() * 1000)),"mediaType":100,"mediaUploadValue":image.strip().decode(),"mediaUploadValueContentType" : "image/jpg","mediaUhqEnabled":False,"attachedObject":None}),
 			headers=self.headers).json();
 		return result;
 
