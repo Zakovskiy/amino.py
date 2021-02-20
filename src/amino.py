@@ -14,10 +14,10 @@ from locale import getdefaultlocale as locale
 
 class Client:
 
-	def __init__(self, email, password):
+	def __init__(self, email, password, deivce_id:str="01A0FD1CA97F814B7EC131AF422DE2F51E679B16E79DC8F3CAB6EED44B67D1A59B6D427D7CE5C174FC"):
 		self.api = "https://service.narvii.com/api/v1/";
 		self.headers = {
-			"NDCDEVICEID": "01A0FD1CA97F814B7EC131AF422DE2F51E679B16E79DC8F3CAB6EED44B67D1A59B6D427D7CE5C174FC",
+			"NDCDEVICEID": deivce_id,
 			"NDC-MSG-SIG": "Aa0ZDPOEgjt1EhyVYyZ5FgSZSqJt",
 			"Accept-Language": "en-US",
 			"Content-Type": "application/json; charset=utf-8",
@@ -32,8 +32,7 @@ class Client:
 			self.authorization(email, password);
 
 	def authorization(self, email, password):
-		deviceId="01A0FD1CA97F814B7EC131AF422DE2F51E679B16E79DC8F3CAB6EED44B67D1A59B6D427D7CE5C174FC" 
-		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":deviceId,"clientType":100,"action":"normal","timestamp":(int(time.time() * 1000))}), headers=self.headers)
+		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":self.headers["NDCDEVICEID"],"clientType":100,"action":"normal","timestamp":(int(time.time() * 1000))}), headers=self.headers)
 		try:
 			self.sid = result.json()["sid"];
 			self.auid = result.json()["auid"];
@@ -45,7 +44,7 @@ class Client:
 	def reload_socket(self):
 		print("Debug>>>Reload socket");
 		self.socket_time = time.time();
-		self.ws = create_connection("wss://ws1.narvii.com?signbody=015051B67B8D59D0A86E0F4A78F47367B749357048DD5F23DF275F05016B74605AAB0D7A6127287D9C%7C"+str((int(time.time() * 1000)))+"&sid="+self.sid);
+		self.ws = create_connection("wss://ws1.narvii.com?signbody="+self.headers["NDCDEVICEID"]+"%7C"+str((int(time.time() * 1000)))+"&sid="+self.sid);
 
 	def accept_host(self, community_id:int = None, chatId: str = None):
 		data = json.dumps({"timestamp": int(time.time() * 1000)})
