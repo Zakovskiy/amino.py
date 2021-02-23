@@ -14,7 +14,7 @@ from locale import getdefaultlocale as locale
 
 class Client:
 
-	def __init__(self, email, password, deivce_id:str="01A0FD1CA97F814B7EC131AF422DE2F51E679B16E79DC8F3CAB6EED44B67D1A59B6D427D7CE5C174FC"):
+	def __init__(self, email, password, deivce_id:str="01D4651E9A8F92763D2DEC4D62F1CAC312B9784014AC7ED24346EF8132D6D286F8A2087F4C320CE82B"):
 		self.api = "https://service.narvii.com/api/v1/";
 		self.headers = {
 			"NDCDEVICEID": deivce_id,
