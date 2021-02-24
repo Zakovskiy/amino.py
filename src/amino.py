@@ -41,6 +41,9 @@ class Client:
 		except:
 			print("Error: "+result.json()["api:message"]);
 
+	def get_from_deviceid(self, device_id:str="None"):
+		return requests.get(f"{self.api}/g/s/auid?deviceId={device_id}", headers=self.headers).json();
+
 	def reload_socket(self):
 		print("Debug>>>Reload socket");
 		self.socket_time = time.time();
@@ -187,7 +190,7 @@ class Client:
 		return data
 
 	def setNickname(self, nickname, community_id):
-		result = requests.post(f"{self.api}x{community_id}/s/user-profile/{Amino.auid}?sid="+self.sid,
+		result = requests.post(f"{self.api}x{community_id}/s/user-profile/{self.auid}?sid="+self.sid,
 			data=json.dumps({"nickname":nickname, "timestamp":(int(time.time() * 1000))}),
 			headers=self.headers).json();
 		return result;
