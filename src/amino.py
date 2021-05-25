@@ -14,8 +14,9 @@ from locale import getdefaultlocale as locale
 
 class Client:
 
-	def __init__(self, email:str=None, password:str=None, deivce_id:str="01D4651E9A8F92763D2DEC4D62F1CAC312B9784014AC7ED24346EF8132D6D286F8A2087F4C320CE82B"):
+	def __init__(self, email, password, deivce_id:str="01D4651E9A8F92763D2DEC4D62F1CAC312B9784014AC7ED24346EF8132D6D286F8A2087F4C320CE82B", proxy:dict=None):
 		self.api = "https://service.narvii.com/api/v1/";
+		self.proxy = proxy;
 		self.headers = {
 			"NDCDEVICEID": deivce_id,
 			"NDC-MSG-SIG": "Aa0ZDPOEgjt1EhyVYyZ5FgSZSqJt",
@@ -31,18 +32,27 @@ class Client:
 		else:
 			self.authorization(email, password);
 
-	def announcement(self):
-		return requests.get(f"{self.api}g/s/announcement?language=ru&start=0&size=1&sid={self.sid}", headers=self.headers).json();
+	def authorization(self, email, password):
+		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":self.headers["NDCDEVICEID"],"clientType":100,"action":"normal","timestamp":(int(time.time() * 1000))}), headers=self.headers, proxies=self.proxy)
+		try:
+			self.sid = result.json()["sid"];
+			self.auid = result.json()["auid"];
+			self.reload_socket();
+			print("Успешный вход") 
+		except:
+			print("Error: "+result.json()["api:message"]);
 
-	def account(self):
-		return requests.get(f"{self.api}g/s/account?sid={self.sid}", headers=self.headers).json();
+	def request_verify_code(self, email):
+		data = {
+			"identity": email,
+			"type": 1,
+			"deviceID": self.headers["NDCDEVICEID"]
+		}
+		response = requests.post(f"{self.api}g/s/auth/request-security-validation", headers=self.headers, data=json.dumps(data), proxies=self.proxy)
+		return response.json();
 
-	def follow(self, community_id:int=0, userId:str=None):
-		return requests.post(f"{self.api}/x{community_id}/s/user-profile/{userId}/member?sid={self.sid}", headers=self.headers).json();
-
-	def register(self, nickname: str = None, email: str = None, password: str = None, deviceId: str = None):
-		if not deviceId:
-			deviceId = self.headers["NDCDEVICEID"];
+	def register(self, nickname: str = None, email: str = None, password: str = None, verificationCode:str=None, deviceId: str = None):
+		if not deviceId: deviceId = self.headers["NDCDEVICEID"];
 
 		data = json.dumps({
 			"secret": f"0 {password}",
@@ -53,26 +63,23 @@ class Client:
 			"latitude": 0,
 			"longitude": 0,
 			"address": None,
+			"validationContext": {
+				"data": {
+					"code": verificationCode
+				},
+				"type": 1,
+				"identity": email
+			},
 			"clientCallbackURL": "narviiapp://relogin",
 			"type": 1,
 			"identity": email,
 			"timestamp": int(time.time() * 1000)
 		})
 
-		return requests.post(f"{self.api}g/s/auth/register", data=data, headers=self.headers).json();
-
-	def authorization(self, email, password):
-		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":self.headers["NDCDEVICEID"],"clientType":100,"action":"normal","timestamp":(int(time.time() * 1000))}), headers=self.headers)
-		try:
-			self.sid = result.json()["sid"];
-			self.auid = result.json()["auid"];
-			self.reload_socket();
-			print("Успешный вход") 
-		except:
-			print("Error: "+result.json()["api:message"]);
+		return requests.post(f"{self.api}g/s/auth/register", data=data, headers=self.headers, proxies=self.proxy).json();
 
 	def get_from_deviceid(self, device_id:str="None"):
-		return requests.get(f"{self.api}/g/s/auid?deviceId={device_id}", headers=self.headers).json();
+		return requests.get(f"{self.api}/g/s/auid?deviceId={device_id}", headers=self.headers, proxies=self.proxy).json();
 
 	def reload_socket(self):
 		print("Debug>>>Reload socket");
@@ -86,7 +93,8 @@ class Client:
 		return response.json()
 
 	def get_notification(self, community_id, start:int = 0, size:int = 10):
-		return requests.get(f"{self.api}/x{community_id}/s/notification?start={start}&size={size}&sid="+self.sid, headers=self.headers).json();
+		response = requests.get(f"{self.api}/x{community_id}/s/notification?start={start}&size={size}&sid="+self.sid, headers=self.headers);
+		return response.json();
 
 	def check_device(self, deviceId: str):
 		data = json.dumps({
@@ -103,19 +111,24 @@ class Client:
 		return response.json()
 
 	def get_wallet_info(self):
-		return requests.get(f"{self.api}/g/s/wallet?sid="+self.sid, headers=self.headers).json();
+		response = requests.get(f"{self.api}/g/s/wallet?sid="+self.sid, headers=self.headers).json();
+		return response;
 
 	def get_wallet_history(self, start:int = 0, size:int = 25):
-		return requests.get(f"{self.api}/g/s/wallet/coin/history?start={start}&size={size}&sid="+self.sid, headers=self.headers).json();
+		response = requests.get(f"{self.api}/g/s/wallet/coin/history?start={start}&size={size}&sid="+self.sid, headers=self.headers)
+		return response.json();
 
 	def moderation_history_user(self, community_id:int = 0, userId: str = None, size: int = 25):
-		return requests.get(f"{self.api}x{community_id}/s/admin/operation?pagingType=t&size={size}&sid={self.sid}", headers=self.headers).json();
+		response = requests.get(f"{self.api}x{community_id}/s/admin/operation?pagingType=t&size={size}&sid={self.sid}", headers=self.headers)
+		return response.json();
 
 	def get_comms(self, start: int = 0, size: int = 25):
-		return requests.get(f"{self.api}g/s/community/joined?start={start}&size={size}&sid="+self.sid, headers=self.headers).json();
+		response = requests.get(f"{self.api}g/s/community/joined?start={start}&size={size}&sid="+self.sid, headers=self.headers).json()
+		return response
 
 	def watch_ad(self):
-		return requests.post(f"{self.api}g/s/wallet/ads/video/start?sid={self.sid}", headers=self.headers).json();
+		response = requests.post(f"{self.api}g/s/wallet/ads/video/start?sid={self.sid}", headers=self.headers)
+		return response.json();
 
 	def transfer_host(self, community_id, chatId: str, userIds: list):
 		data = json.dumps({
@@ -127,13 +140,16 @@ class Client:
 		return response;
 
 	def join_chat(self, community_id, thread_id):
-		return requests.post(f"{self.api}x{community_id}/s/chat/thread/{chat_id}/member/{self.auid}?sid="+self.sid, headers=self.headers).json();
+		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chat_id}/member/{self.auid}?sid="+self.sid, headers=self.headers).json()
+		return response;
 
 	def getMessages(self, community_id, thread_id, size):
-		return requests.get(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?v=2&pagingType=t&size={size}&sid="+self.sid, headers=self.headers).json()
+		res = requests.get(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?v=2&pagingType=t&size={size}&sid="+self.sid, headers=self.headers)
+		return res.json()
 
 	def getThread(self, community_id, thread_id):
-		return requests.get(f"{self.api}x{community_id}/s/chat/thread/{thread_id}?sid="+self.sid, headers=self.headers).json();
+		res = requests.get(f"{self.api}x{community_id}/s/chat/thread/{thread_id}?sid="+self.sid, headers=self.headers);
+		return res.json();
 
 	def sendAudio(self, path, community_id, thread_id):
 		audio = base64.b64encode(open(path, "rb").read())
@@ -151,7 +167,8 @@ class Client:
 		return response;
 
 	def get_banned_users(self, community_id, start: int = 0, size: int = 25):
-		return requests.get(f"{self.api}x{community_id}/s/user-profile?type=banned&start={start}&size={size}&sid="+self.sid, headers=self.headers).json();
+		response = requests.get(f"{self.api}x{community_id}/s/user-profile?type=banned&start={start}&size={size}&sid="+self.sid, headers=self.headers)
+		return response.json();
 
 	def unban(self, community_id, userId: str, reason: str):
 		data = json.dumps({
@@ -161,7 +178,8 @@ class Client:
 			"timestamp": int(time.time() * 1000)
 		})
 
-		return requests.post(f"{self.api}x{community_id}/s/user-profile/{userId}/unban?sid={self.sid}", headers=self.headers, data=data).json();
+		response = requests.post(f"{self.api}x{community_id}/s/user-profile/{userId}/unban?sid={self.sid}", headers=self.headers, data=data)
+		return response.json();
 
 		
 
@@ -209,7 +227,7 @@ class Client:
 		return data
 
 	def setNickname(self, nickname, community_id):
-		result = requests.post(f"{self.api}x{community_id}/s/user-profile/{self.auid}?sid="+self.sid,
+		result = requests.post(f"{self.api}x{community_id}/s/user-profile/{Amino.auid}?sid="+self.sid,
 			data=json.dumps({"nickname":nickname, "timestamp":(int(time.time() * 1000))}),
 			headers=self.headers).json();
 		return result;
