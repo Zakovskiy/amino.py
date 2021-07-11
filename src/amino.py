@@ -11,14 +11,17 @@ from uuid import UUID
 from binascii import hexlify
 from os import urandom
 from locale import getdefaultlocale as locale
+from hashlib import sha1
+import string
 
 class Client:
 
-	def __init__(self, email, password, deivce_id:str="01D4651E9A8F92763D2DEC4D62F1CAC312B9784014AC7ED24346EF8132D6D286F8A2087F4C320CE82B", proxy:dict=None):
-		self.api = "https://service.narvii.com/api/v1/";
-		self.proxy = proxy;
+	def __init__(self, email, password, did:str=None, proxy:dict=None):
+		self.deivce_id = self.deviceIdgenerator() if not did else did
+		self.api = "https://service.narvii.com/api/v1/"
+		self.proxy = proxy
 		self.headers = {
-			"NDCDEVICEID": deivce_id,
+			"NDCDEVICEID": self.deivce_id,
 			"NDC-MSG-SIG": "Aa0ZDPOEgjt1EhyVYyZ5FgSZSqJt",
 			"Accept-Language": "en-US",
 			"Content-Type": "application/json; charset=utf-8",
@@ -26,20 +29,20 @@ class Client:
 			"Host": "service.narvii.com",
 			"Accept-Encoding": "gzip",
 			"Connection": "Keep-Alive"
-			}
+		}
 		if not email and not password:
-			self.sid = "?";
+			self.sid = "?"
 		else:
-			self.authorization(email, password);
+			self.authorization(email, password)
 
 	def authorization(self, email, password):
 		result = requests.post(f"{self.api}g/s/auth/login", data=json.dumps({"email":email,"secret":"0 "+password,"deviceID":self.headers["NDCDEVICEID"],"clientType":100,"action":"normal","timestamp":(int(time.time() * 1000))}), headers=self.headers, proxies=self.proxy)
 		try:
-			self.sid = result.json()["sid"];
-			self.auid = result.json()["auid"];
-			self.reload_socket();
+			self.sid = result.json()["sid"]
+			self.auid = result.json()["auid"]
+			self.reload_socket()
 		except:
-			print(">>Error: "+result.json()["api:message"]);
+			print(">> Error: " + result.json()["api:message"])
 
 	def request_verify_code(self, email):
 		data = {
@@ -48,11 +51,11 @@ class Client:
 			"deviceID": self.headers["NDCDEVICEID"]
 		}
 		response = requests.post(f"{self.api}g/s/auth/request-security-validation", headers=self.headers, data=json.dumps(data), proxies=self.proxy)
-		return response.json();
+		return response.json()
 
 	def register(self, nickname: str = None, email: str = None, password: str = None, verificationCode:str=None, deviceId: str = None):
 		if not deviceId:
-			deviceId = self.headers["NDCDEVICEID"];
+			deviceId = self.headers["NDCDEVICEID"]
 
 		data = json.dumps({
 			"secret": f"0 {password}",
@@ -76,14 +79,14 @@ class Client:
 			"timestamp": int(time.time() * 1000)
 		})
 
-		return requests.post(f"{self.api}g/s/auth/register", data=data, headers=self.headers, proxies=self.proxy).json();
+		return requests.post(f"{self.api}g/s/auth/register", data=data, headers=self.headers, proxies=self.proxy).json()
 
 	def get_from_deviceid(self, device_id:str="None"):
-		return requests.get(f"{self.api}/g/s/auid?deviceId={device_id}", headers=self.headers, proxies=self.proxy).json();
+		return requests.get(f"{self.api}/g/s/auid?deviceId={device_id}", headers=self.headers, proxies=self.proxy).json()
 
 	def reload_socket(self):
-		self.socket_time = time.time();
-		self.ws = create_connection("wss://ws1.narvii.com?signbody="+self.headers["NDCDEVICEID"]+"%7C"+str((int(time.time() * 1000)))+"&sid="+self.sid);
+		self.socket_time = time.time()
+		self.ws = create_connection("wss://ws1.narvii.com?signbody="+self.headers["NDCDEVICEID"]+"%7C"+str((int(time.time() * 1000)))+"&sid="+self.sid)
 
 	def accept_host(self, community_id:int = None, chatId: str = None):
 		data = json.dumps({"timestamp": int(time.time() * 1000)})
@@ -92,8 +95,8 @@ class Client:
 		return response.json()
 
 	def get_notification(self, community_id, start:int = 0, size:int = 10):
-		response = requests.get(f"{self.api}/x{community_id}/s/notification?start={start}&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy);
-		return response.json();
+		response = requests.get(f"{self.api}/x{community_id}/s/notification?start={start}&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy)
+		return response.json()
 
 	def check_device(self, deviceId: str):
 		data = json.dumps({
@@ -117,10 +120,6 @@ class Client:
 		response = requests.get(f"{self.api}/g/s/wallet/coin/history?start={start}&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
 		return response
 
-	def moderation_history_user(self, community_id:int = 0, userId: str = None, size: int = 25):
-		response = requests.get(f"{self.api}x{community_id}/s/admin/operation?pagingType=t&size={size}&sid={self.sid}", headers=self.headers, proxies=self.proxy).json()
-		return response
-
 	def get_comms(self, start: int = 0, size: int = 25):
 		response = requests.get(f"{self.api}g/s/community/joined?start={start}&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
 		return response
@@ -139,7 +138,7 @@ class Client:
 		return response
 
 	def join_chat(self, community_id, thread_id):
-		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{chat_id}/member/{self.auid}?sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
+		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}?sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
 		return response
 
 	def getMessages(self, community_id, thread_id, size):
@@ -152,7 +151,7 @@ class Client:
 
 	def sendAudio(self, path, community_id, thread_id):
 		audio = base64.b64encode(open(path, "rb").read())
-		return requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid, data=json.dumps({"content":None,"type":2,"clientRefId":827027430,"timestamp":int(time.time() * 1000),"mediaType":110,"mediaUploadValue":audio,"attachedObject":None}), headers=self.headers, proxies=self.proxy).json();
+		return requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid, data=json.dumps({"content":None,"type":2,"clientRefId":827027430,"timestamp":int(time.time() * 1000),"mediaType":110,"mediaUploadValue":audio,"attachedObject":None}), headers=self.headers, proxies=self.proxy).json()
 
 	def ban(self, userId: str, community_id, reason: str, banType: int = None):
 
@@ -162,7 +161,7 @@ class Client:
 				"content": reason
 			},
 			"timestamp": int(time.time() * 1000)
-		}), proxies=self.proxy).json();
+		}), proxies=self.proxy).json()
 		return response
 
 	def get_banned_users(self, community_id, start: int = 0, size: int = 25):
@@ -218,8 +217,8 @@ class Client:
 		return data
 
 	def setNickname(self, nickname, community_id):
-		result = requests.post(f"{self.api}x{community_id}/s/user-profile/{Amino.auid}?sid="+self.sid,
-			data=c.dumps({"nickname":nickname, "timestamp":(int(time.time() * 1000))}),
+		result = requests.post(f"{self.api}x{community_id}/s/user-profile/{self.auid}?sid="+self.sid,
+			data=json.dumps({"nickname":nickname, "timestamp":(int(time.time() * 1000))}),
 			headers=self.headers, proxies=self.proxy).json()
 		return result
 
@@ -252,7 +251,7 @@ class Client:
 		return result
 
 	def createStickerpack(self, name, stickers, community_id):
-		result = requests.post(f"{self.api}x{com}/s/sticker-collection?sid="+self.sid,
+		result = requests.post(f"{self.api}x{community_id}/s/sticker-collection?sid="+self.sid,
 			data=json.dumps({"collectionType":3,"description":"stickerpack","iconSourceStickerIndex":0,"name":name,"stickerList":stickers,"timestamp":(int(time.time() * 1000))}),
 			headers=self.headers, proxies=self.proxy).json()
 		return result
@@ -285,8 +284,8 @@ class Client:
 		return response
 
 	def send(self, message, community_id : str, thread_id, reply_message_id:str = None, notifcation : list = None, clientRefId:int=43196704):
-		data = {"content":message,"type":0,"clientRefId":clientRefId,"mentionedArray": [notifcation], "timestamp":(int(time.time() * 1000))};
-		if (reply_message_id != None): data["replyMessageId"] = reply_message_id;
+		data = {"content":message,"type":0,"clientRefId":clientRefId,"mentionedArray": [notifcation], "timestamp":(int(time.time() * 1000))}
+		if (reply_message_id != None): data["replyMessageId"] = reply_message_id
 		result = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/message?sid="+self.sid,
 			data=json.dumps(data),
 			headers=self.headers, proxies=self.proxy).json()
@@ -338,8 +337,7 @@ class Client:
 	def invite_to_chat(self, community_id, thread_id: str, userId: [str, list]):
 		if isinstance(userId, str): userIds = [userId]
 		elif isinstance(userId, list): userIds = userId
-		else: raise exceptions.WrongType(type(userId))
-
+		
 		data = json.dumps({
 			"uids": userIds,
 			"timestamp": int(time.time() * 1000)
@@ -348,21 +346,17 @@ class Client:
 		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/member/invite?sid="+self.sid, headers=self.headers, data=data, proxies=self.proxy).json()
 		return response
 
-	def join_chat(self, community_id, thread_id):
-		response = requests.post(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}?sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
-		return response
-
 	def get_online_users(self, community_id, start: int = 0, size: int = 25):
 		response = requests.get(f"{self.api}/x{community_id}/s/live-layer?topic=ndtopic:x{community_id}:online-members&start={start}&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
 		return response
 
 	def get_users_community(self, community_id, start:int = 0, size:int = 25):
-		response = requests.get(f"{self.api}x{community_id}/s/user-profile?type=recent&start={start}&size={size}&sid="+self.sid, headers=self.headers).json();
+		response = requests.get(f"{self.api}x{community_id}/s/user-profile?type=recent&start={start}&size={size}&sid="+self.sid, headers=self.headers).json()
 		return response
 
 	def leave_chat(self, community_id, thread_id):
 		response = requests.delete(f"{self.api}x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}?sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
-		return response;
+		return response
 
 	def sendGif(self, image, community_id, thread_id):
 		img = base64.b64encode(open(image, "rb").read())
@@ -380,7 +374,7 @@ class Client:
 	def get_from_code(self, code: str):
 		response = requests.get(f"{self.api}/g/s/link-resolution?q={code}", headers=self.headers, proxies=self.proxy).json()
 		return response
-
+	
 	def get_user_blogs(self, community_id, author, start:int = 0,size:int = 25):
 		response = requests.get(f"{self.api}/x{community_id}/s/blog?type=user&q={author}&start={start}&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
 		return response
@@ -396,12 +390,12 @@ class Client:
 		return response
 
 	def send_coins_blog(self, community_id:int = 0, blogId:str = None, coins:int = None, transactionId:str = None):
-		if(transactionId is None): transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')));
+		if(transactionId is None): transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')))
 		response = requests.post(f"{self.api}/x{community_id}/s/blog/{blogId}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId": transactionId},"timestamp": int(time.time() * 1000)}), headers=self.headers, proxies=self.proxy).json()
 		return response
 
 	def send_coins_chat(self, community_id:int = None, thread_id:str = None, coins:int = None, transactionId:str = None):
-		if(transactionId is None): transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')));
+		if(transactionId is None): transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')))
 		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/tipping?sid="+self.sid, data=json.dumps({"coins": coins,"tippingContext": {"transactionId":transactionId},"timestamp": int(time.time() * 1000)}), headers=self.headers, proxies=self.proxy).json()
 		
 		return response
@@ -416,22 +410,76 @@ class Client:
 		return response
 
 	def edit_thread(self, community_id:int = None, thread_id:str = None, content:str = None, title:str = None, backgroundImage:str = None):
-		res = [];
+		res = []
 		if backgroundImage is not None:
-			data = json.dumps({"media": [100, backgroundImage, None], "timestamp": int(time.time() * 1000)});
-			response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}/background?sid="+self.sid, data=data, headers=self.headers, proxies=self.proxy);
-			res.append(response.json());
+			data = json.dumps({"media": [100, backgroundImage, None], "timestamp": int(time.time() * 1000)})
+			response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}/member/{self.auid}/background?sid="+self.sid, data=data, headers=self.headers, proxies=self.proxy)
+			res.append(response.json())
 
 		data = {"timestamp":int(time.time() * 1000)}
 
 		if(content): data["content"] = content
 		if(title):   data["title"]   = title
-		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}?sid="+self.sid, headers=self.headers, data=json.dumps(data), proxies=self.proxy);
+		response = requests.post(f"{self.api}/x{community_id}/s/chat/thread/{thread_id}?sid="+self.sid, headers=self.headers, data=json.dumps(data), proxies=self.proxy)
 		res.append(response.json())
 		return res
-
+		
+	def deviceIdgenerator(self, st:int = 69):
+	    gs = ""
+	    ran = ''.join(random.choices(string.ascii_uppercase + string.digits, k = st))
+	    deviceid = '01' + (gs := sha1(ran.encode("utf-8"))).hexdigest() + sha1(bytes.fromhex('01') + gs.digest() + base64.b64decode("6a8tf0Meh6T4x7b0XvwEt+Xw6k8=")).hexdigest()
+	    return deviceid
+	   
+	
 	# Moder:{
 
 	def moderation_history_community(self, community_id, size: int = 25):
-		response = requests.get(f"{self.api}/x{community_id}/s/admin/operation?pagingType=t&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
-		return response
+		return requests.get(f"{self.api}/x{community_id}/s/admin/operation?pagingType=t&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
+
+	def moderation_history_user(self, community_id:int = 0, userId: str = None, size: int = 25):
+		return requests.get(f"{self.api}/x{community_id}/s/admin/operation?objectId={userId}&objectType=0&pagingType=t&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
+
+	def moderation_history_blog(self, community_id:int = 0, blogId: str = None, size: int = 25):
+		return requests.get(f"{self.api}/x{community_id}/s/admin/operation?objectId={blogId}&objectType=1&pagingType=t&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
+
+	def moderation_history_quiz(self, community_id:int = 0, quizId: str = None, size: int = 25):
+		return requests.get(f"{self.api}/x{community_id}/s/admin/operation?objectId={quizId}&objectType=1&pagingType=t&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
+
+	def moderation_history_wiki(self, community_id:int = 0, wikiId: str = None, size: int = 25):
+		return requests.get(f"{self.api}/x{community_id}/s/admin/operation?objectId={wikiId}&objectType=2&pagingType=t&size={size}&sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
+
+	def give_curator(self, community_id, uid):
+		return requests.post(f"{self.api}/x{community_id}/s/user-profile/{uid}/curator?sid="+self.sid, headers=self.headers, data=json.dumps({}), proxies=self.proxy).json()
+	
+	def give_leader(self, community_id, uid):
+		return requests.post(f"{self.api}/x{community_id}/s/user-profile/{uid}/leader?sid="+self.sid, headers=self.headers, data=json.dumps({}), proxies=self.proxy).json()
+
+	# }
+
+	# Bubble:{
+
+	def upload_bubble_1(self, file:str):
+		data = open(file, "rb").read()
+		return requests.post(f"{self.api}/g/s/media/upload/target/chat-bubble-thumbnail?sid="+self.sid, headers=self.headers, data=data, proxies=self.proxy).json()
+
+	def upload_bubble_2(self, community_id:int, template_id, file):
+		data = open(file, "rb").read()
+		return requests.post(f"{self.api}/x{community_id}/s/chat/chat-bubble/{template_id}?sid="+self.sid, headers=self.headers,data=data, proxies=self.proxy).json()
+
+	def generate_bubble(self, community_id:int, file:str,template_id:str="fd95b369-1935-4bc5-b014-e92c45b8e222",):
+		data = open(file, "rb").read()
+		return requests.post(f"{self.api}/x{community_id}/s/chat/chat-bubble/templates/{template_id}/generate?sid="+self.sid, headers=self.headers, data=data, proxies=self.proxy).json()
+
+	def get_bubble_info(self, community_id:int, bid):
+		return requests.get(f"{self.api}/x{community_id}/s/chat/chat-bubble/{bid}?sid="+self.sid, headers=self.headers, proxies=self.proxy).json()
+
+	def buy_bubble(self, community_id:int, bid):
+		data = {
+			"objectId": bid,
+			"objectType": 116,
+			"v": 1,
+			"timestamp": int(time.time() * 1000)
+		}
+		return requests.post(f"{self.api}x{community_id}/s/store/purchase?sid="+self.sid, headers=self.headers, data=json.dumps(data), proxies=self.proxy).json()
+
+	# }
