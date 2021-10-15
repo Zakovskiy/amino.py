@@ -1,7 +1,7 @@
 # Amino API on Python
 <h1 align="center">
   <br>
-  <a href="https://github.com/Zakovskiy/amino.py"><img src="blob:https://web.telegram.org/6ddaaffd-1a22-4260-80eb-614042386c35" alt="amino.py" width="200"></a>
+  <a href="https://github.com/Zakovskiy/amino.py"><img src="https://github.com/Zakovskiy/amino.py/blob/master/icon.png?raw=true" width="500"></a>
 </h1>
 # Install
 ```
