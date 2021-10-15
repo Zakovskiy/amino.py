@@ -32,7 +32,7 @@ class Client:
 			"Connection": "Keep-Alive"
 		}
 		if email and password:
-			print(self.login(email, password))
+			self.login(email, password)
 
 	def login(self, email, password):
 		data = {
