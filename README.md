@@ -6,6 +6,7 @@
   Amino API on Python
   <br>
 </h1>
+
 # Install
 ```
 git clone https://github.com/Zakovskiy/amino.py
